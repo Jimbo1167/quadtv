@@ -1,0 +1,64 @@
+{
+  "manifest_version": 2,
+  "name": "QuadTV",
+  "version": "0.1.0",
+  "description": "Multi-stream viewing for YouTube TV",
+
+  "permissions": [
+    "activeTab",
+    "storage",
+    "*://tv.youtube.com/*"
+  ],
+
+  "background": {
+    "scripts": ["background/backgroundController.js"],
+    "persistent": false
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://tv.youtube.com/*"],
+      "js": [
+        "shared/messageBus.js",
+        "shared/layoutEngine.js",
+        "shared/storageManager.js",
+        "content/uiManager.js",
+        "content/streamManager.js",
+        "content/contentScript.js"
+      ],
+      "css": ["content/quadtv.css"],
+      "run_at": "document_end"
+    }
+  ],
+
+  "browser_action": {
+    "default_title": "QuadTV",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "96": "icons/icon-96.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png"
+  },
+
+  "commands": {
+    "toggle-quadtv": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Q"
+      },
+      "description": "Toggle QuadTV multi-view"
+    }
+  },
+
+  "web_accessible_resources": [
+    "content/*.css"
+  ]
+}
