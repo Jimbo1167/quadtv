@@ -155,7 +155,7 @@ class StreamManager {
   }
 
   isValidYouTubeTVUrl(url) {
-    return url && url.includes('tv.youtube.com');
+    return Boolean(url && url.includes('tv.youtube.com'));
   }
 
   getStreamData() {
@@ -177,3 +177,8 @@ class StreamManager {
 }
 
 window.QuadTVStreamManager = new StreamManager();
+
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { StreamManager };
+}

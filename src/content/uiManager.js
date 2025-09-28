@@ -46,19 +46,92 @@ class UIManager {
   setAudioState(data) {
     console.log(`🔊 Tab: Setting audio ${data.hasAudio ? 'ON' : 'OFF'} (stream ${data.streamIndex})`);
 
+    // Enhanced audio control with validation
     const video = document.querySelector('video');
     if (video) {
       if (data.hasAudio) {
-        video.muted = false;
-        video.play().catch(e => console.log('Play failed:', e));
-        console.log('🔊 Audio enabled for this tab');
+        this.enableAudio(video);
       } else {
-        video.muted = true;
-        console.log('🔇 Audio muted for this tab');
+        this.disableAudio(video);
       }
     }
 
+    // Update visual indicators
     this.updateAudioIndicator();
+    this.updatePageBorder(data.hasAudio);
+
+    // Store audio state for persistence
+    this.hasAudio = data.hasAudio;
+    this.streamIndex = data.streamIndex;
+  }
+
+  enableAudio(video) {
+    try {
+      video.muted = false;
+      video.volume = 1.0; // Ensure volume is at maximum
+
+      // Attempt to play if paused
+      if (video.paused) {
+        video.play().catch(e => console.log('Play attempt failed:', e));
+      }
+
+      console.log('🔊 Audio enabled for this tab');
+
+      // Monitor for YouTube TV attempting to mute
+      this.setupAudioMonitoring(video);
+    } catch (error) {
+      console.error('Failed to enable audio:', error);
+    }
+  }
+
+  disableAudio(video) {
+    try {
+      video.muted = true;
+      console.log('🔇 Audio muted for this tab');
+
+      // Clear audio monitoring
+      this.clearAudioMonitoring();
+    } catch (error) {
+      console.error('Failed to disable audio:', error);
+    }
+  }
+
+  setupAudioMonitoring(video) {
+    // Clear any existing monitoring
+    this.clearAudioMonitoring();
+
+    // Monitor for volume/mute changes by YouTube TV
+    this.audioMonitorInterval = setInterval(() => {
+      if (this.hasAudio && video.muted) {
+        console.log('⚠️ Audio was muted by YouTube TV, restoring...');
+        video.muted = false;
+      }
+    }, 500);
+  }
+
+  clearAudioMonitoring() {
+    if (this.audioMonitorInterval) {
+      clearInterval(this.audioMonitorInterval);
+      this.audioMonitorInterval = null;
+    }
+  }
+
+  clearAudioFlashTimeout() {
+    if (this.audioFlashTimeout) {
+      clearTimeout(this.audioFlashTimeout);
+      this.audioFlashTimeout = null;
+    }
+  }
+
+  updatePageBorder(hasAudio) {
+    // Add/remove red border to indicate active audio stream
+    const body = document.body;
+    if (hasAudio) {
+      body.style.border = '4px solid #ff0000';
+      body.style.boxSizing = 'border-box';
+    } else {
+      body.style.border = 'none';
+    }
   }
 
   getCurrentTabId() {
@@ -80,7 +153,16 @@ class UIManager {
   deactivate() {
     if (!this.isActive) return;
 
+    // Clean up audio monitoring
+    this.clearAudioMonitoring();
+
+    // Clean up any pending timeouts
+    this.clearAudioFlashTimeout();
+
+    // Remove visual indicators
     this.removeIndicator();
+    this.updatePageBorder(false);
+
     this.isActive = false;
 
     console.log('📺 Tab: UI deactivated');
@@ -163,16 +245,36 @@ class UIManager {
       }
     }
 
-    if (streamIndex !== null && currentTabId !== this.activeAudioTab) {
-      console.log(`🔊 Tab: Requesting audio switch to stream ${streamIndex}`);
+    if (streamIndex !== null) {
+      if (currentTabId !== this.activeAudioTab) {
+        console.log(`🔊 Tab: Requesting audio switch to stream ${streamIndex}`);
 
-      // Send message to background to switch audio to this tab
-      browser.runtime.sendMessage({
-        type: 'SWITCH_AUDIO',
-        streamIndex: streamIndex
-      }).catch(error => {
-        console.error('Failed to switch audio:', error);
-      });
+        // Send message to background to switch audio to this tab
+        browser.runtime.sendMessage({
+          type: 'SWITCH_AUDIO',
+          streamIndex: streamIndex
+        }).catch(error => {
+          console.error('Failed to switch audio:', error);
+        });
+      } else {
+        console.log(`🔊 Tab: Stream ${streamIndex} already has audio`);
+        // Add visual feedback for already active state
+        this.showAudioActiveFlash();
+      }
+    }
+  }
+
+  showAudioActiveFlash() {
+    // Brief visual feedback when clicking already active audio tab
+    if (this.indicator) {
+      const originalBg = this.indicator.style.background;
+      this.indicator.style.background = '#00ff00';
+      this.audioFlashTimeout = setTimeout(() => {
+        if (this.indicator) { // Check if indicator still exists
+          this.indicator.style.background = originalBg;
+        }
+        this.audioFlashTimeout = null;
+      }, 200);
     }
   }
 
@@ -182,9 +284,38 @@ class UIManager {
 
   setLayout(layout) {
     this.currentLayout = layout;
+
+    // Preserve audio state during layout changes (QTV-004 requirement)
+    const preservedAudioState = {
+      hasAudio: this.hasAudio,
+      streamIndex: this.streamIndex,
+      activeAudioTab: this.activeAudioTab
+    };
+
     // In multi-tab approach, layout changes would be coordinated
     // across all tabs through the background script
-    this.messageBus.publish('LAYOUT_CHANGED', { layout });
+    this.messageBus.publish('LAYOUT_CHANGED', {
+      layout,
+      preserveAudio: preservedAudioState
+    });
+
+    // Ensure audio state persists after layout change
+    if (this.hasAudio) {
+      setTimeout(() => {
+        this.validateAudioState();
+      }, 100);
+    }
+  }
+
+  validateAudioState() {
+    // Ensure audio state is still correct after layout changes
+    const video = document.querySelector('video');
+    if (video && this.hasAudio) {
+      if (video.muted) {
+        console.log('⚠️ Audio state lost during layout change, restoring...');
+        this.enableAudio(video);
+      }
+    }
   }
 
   highlightStream(streamIndex) {

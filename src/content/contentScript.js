@@ -69,6 +69,13 @@ class QuadTVContentScript {
         sendResponse({ success: true });
         break;
 
+      case 'GET_TAB_STATE':
+        sendResponse({ 
+          isQuadTVTab: this.isActive,
+          tabId: window.quadTVCurrentTabId 
+        });
+        break;
+
       case 'QUADTV_ACTIVATED':
         console.log('📺 Content: Received QuadTV activation with multi-tab data');
         this.messageBus.publish('QUADTV_ACTIVATED', message);
@@ -99,14 +106,29 @@ class QuadTVContentScript {
   }
 
   activateQuadTV() {
-    // Legacy activation - now handled by multi-tab coordination
-    console.log('📺 Content: Legacy QuadTV activation (multi-tab mode uses QUADTV_ACTIVATED)');
+    console.log('📺 Content: Activating QuadTV - requesting background coordination');
+    
+    // Send message to background script to start multi-tab coordination
+    browser.runtime.sendMessage({
+      type: 'TOGGLE_QUADTV'
+    }).then(response => {
+      console.log('📺 Content: Background activation response:', response);
+    }).catch(error => {
+      console.error('📺 Content: Failed to activate QuadTV:', error);
+    });
   }
 
   deactivateQuadTV() {
-    // Legacy deactivation - now handled by multi-tab coordination
-    console.log('📺 Content: Legacy QuadTV deactivation (multi-tab mode uses QUADTV_DEACTIVATED)');
-    this.messageBus.publish('QUADTV_DEACTIVATED');
+    console.log('📺 Content: Deactivating QuadTV - requesting background coordination');
+    
+    // Send message to background script to stop multi-tab coordination
+    browser.runtime.sendMessage({
+      type: 'TOGGLE_QUADTV'
+    }).then(response => {
+      console.log('📺 Content: Background deactivation response:', response);
+    }).catch(error => {
+      console.error('📺 Content: Failed to deactivate QuadTV:', error);
+    });
   }
 
   notifyBackgroundState(isActive) {

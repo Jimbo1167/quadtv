@@ -86,6 +86,23 @@ describe('UIManager - Multi-Tab Architecture (QTV-002 & QTV-003)', () => {
     uiManager = new UIManager();
   });
 
+  afterEach(() => {
+    // Clean up any running intervals and timeouts to prevent Jest open handles
+    if (uiManager) {
+      if (uiManager.clearAudioMonitoring) {
+        uiManager.clearAudioMonitoring();
+      }
+      if (uiManager.clearAudioFlashTimeout) {
+        uiManager.clearAudioFlashTimeout();
+      }
+      
+      // Deactivate to ensure full cleanup
+      if (uiManager.isActive) {
+        uiManager.deactivate();
+      }
+    }
+  });
+
   describe('QTV-002: Multi-Tab Coordination', () => {
     test('should initialize with multi-tab state management', () => {
       expect(uiManager.isActive).toBe(false);
@@ -176,6 +193,8 @@ describe('UIManager - Multi-Tab Architecture (QTV-002 & QTV-003)', () => {
     test('should handle audio state changes', () => {
       const mockVideo = {
         muted: false,
+        paused: true,
+        volume: 0.5,
         play: jest.fn().mockResolvedValue()
       };
       document.querySelector.mockReturnValue(mockVideo);
@@ -187,6 +206,7 @@ describe('UIManager - Multi-Tab Architecture (QTV-002 & QTV-003)', () => {
       });
 
       expect(mockVideo.muted).toBe(false);
+      expect(mockVideo.volume).toBe(1.0);
       expect(mockVideo.play).toHaveBeenCalled();
 
       // Test disabling audio
@@ -241,7 +261,12 @@ describe('UIManager - Multi-Tab Architecture (QTV-002 & QTV-003)', () => {
       uiManager.setLayout('1+3');
 
       expect(mockMessageBus.publish).toHaveBeenCalledWith('LAYOUT_CHANGED', {
-        layout: '1+3'
+        layout: '1+3',
+        preserveAudio: {
+          hasAudio: undefined,
+          streamIndex: undefined,
+          activeAudioTab: null
+        }
       });
     });
 

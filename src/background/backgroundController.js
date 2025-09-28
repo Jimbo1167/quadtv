@@ -103,7 +103,9 @@ class BackgroundController {
 
     if (closedStreamIndex !== null) {
       console.log(`🗑️ Stream ${closedStreamIndex} tab closed:`, tabId);
+      console.log('🗺️ Before deletion, streamTabs:', Array.from(this.streamTabs.entries()));
       this.streamTabs.delete(closedStreamIndex);
+      console.log('🗺️ After deletion, streamTabs:', Array.from(this.streamTabs.entries()));
 
       // If this was the control tab, deactivate everything
       if (tabId === this.controlTabId) {
@@ -184,9 +186,13 @@ class BackgroundController {
       const additionalTabs = await this.createAdditionalTabs();
 
       // Setup stream tab mapping
+      console.log('🗺️ Setting up streamTabs mapping...');
       this.streamTabs.set(0, controlTab.id); // Original tab = stream 0
+      console.log(`🗺️ Added stream 0 -> tab ${controlTab.id}`);
+      
       additionalTabs.forEach((tabId, index) => {
         this.streamTabs.set(index + 1, tabId);
+        console.log(`🗺️ Added stream ${index + 1} -> tab ${tabId}`);
       });
 
       // Set first tab as active audio
@@ -344,6 +350,18 @@ class BackgroundController {
         sendResponse({ success: true });
         break;
 
+      case 'LAYOUT_CHANGED':
+        // Handle layout changes with audio state preservation
+        if (message.preserveAudio) {
+          console.log('📋 Background: Layout changed, preserving audio state');
+          // Re-validate audio state after layout change
+          setTimeout(() => {
+            this.validateExclusiveAudio();
+          }, 500);
+        }
+        sendResponse({ success: true });
+        break;
+
       default:
         sendResponse({ success: false, error: 'Unknown message type' });
     }
@@ -351,11 +369,28 @@ class BackgroundController {
 
   async switchAudio(targetStreamIndex) {
     console.log(`🔊 Background: Switching audio to stream ${targetStreamIndex}`);
+    console.log('🗺️ Current streamTabs mapping:', Array.from(this.streamTabs.entries()));
+    console.log('🎯 Looking for stream index:', targetStreamIndex);
 
     const targetTabId = this.streamTabs.get(targetStreamIndex);
     if (!targetTabId) {
       console.error('❌ Stream not found:', targetStreamIndex);
-      return;
+      console.error('❌ Available streams:', Array.from(this.streamTabs.keys()));
+      console.error('❌ streamTabs size:', this.streamTabs.size);
+      console.error('❌ isActive:', this.isActive);
+      
+      // Attempt to recover by rebuilding streamTabs mapping
+      console.log('🔧 Attempting to recover streamTabs mapping...');
+      await this.recoverStreamMapping();
+      
+      // Try again after recovery
+      const recoveredTabId = this.streamTabs.get(targetStreamIndex);
+      if (!recoveredTabId) {
+        console.error('❌ Recovery failed, stream still not found');
+        return;
+      }
+      console.log('✅ Recovery successful, continuing with audio switch');
+      return this.switchAudio(targetStreamIndex); // Recursive call with recovered mapping
     }
 
     this.activeAudioTab = targetTabId;
@@ -410,6 +445,49 @@ class BackgroundController {
 
   isYouTubeTV(url) {
     return url && url.includes('tv.youtube.com');
+  }
+
+  async recoverStreamMapping() {
+    console.log('🔧 Recovery: Attempting to rebuild streamTabs mapping');
+    
+    try {
+      // Get all tabs and find YouTube TV tabs that should be part of QuadTV
+      const allTabs = await browser.tabs.query({});
+      const youTubeTVTabs = allTabs.filter(tab => this.isYouTubeTV(tab.url));
+      
+      console.log('🔧 Recovery: Found YouTube TV tabs:', youTubeTVTabs.map(t => ({ id: t.id, url: t.url })));
+      
+      // Clear current mapping
+      this.streamTabs.clear();
+      
+      // Try to identify which tabs belong to QuadTV by checking their state
+      let streamIndex = 0;
+      for (const tab of youTubeTVTabs) {
+        // Check if this tab has QuadTV active
+        try {
+          const response = await browser.tabs.sendMessage(tab.id, { type: 'GET_TAB_STATE' });
+          if (response && response.isQuadTVTab) {
+            this.streamTabs.set(streamIndex, tab.id);
+            console.log(`🔧 Recovery: Added stream ${streamIndex} -> tab ${tab.id}`);
+            streamIndex++;
+          }
+        } catch (error) {
+          // Tab might not have content script loaded, skip
+          console.log(`🔧 Recovery: Tab ${tab.id} not responsive, skipping`);
+        }
+      }
+      
+      // If we found the control tab, set it
+      if (this.streamTabs.has(0)) {
+        this.controlTabId = this.streamTabs.get(0);
+        console.log(`🔧 Recovery: Set control tab to ${this.controlTabId}`);
+      }
+      
+      console.log('🔧 Recovery: Rebuilt streamTabs mapping:', Array.from(this.streamTabs.entries()));
+      
+    } catch (error) {
+      console.error('🔧 Recovery: Failed to rebuild streamTabs mapping:', error);
+    }
   }
 }
 
