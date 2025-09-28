@@ -1,0 +1,253 @@
+/\* QuadTV Popup Styles \*/
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 320px;
+  min-height: 400px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  color: #e8eaed;
+  background: #1f1f1f;
+}
+
+.popup-container {
+  padding: 16px;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #333;
+}
+
+.popup-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ff0000;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #666;
+  transition: background 0.2s ease;
+}
+
+.status-indicator.active {
+  background: #00ff00;
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+}
+
+.layout-section, .presets-section {
+  margin-bottom: 24px;
+}
+
+.layout-section h3, .presets-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.layout-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #2a2a2a;
+  color: #e8eaed;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.layout-option:hover {
+  background: #333;
+  border-color: #555;
+}
+
+.layout-option.active {
+  border-color: #ff0000;
+  background: rgba(255, 0, 0, 0.1);
+}
+
+.layout-preview {
+  width: 32px;
+  height: 24px;
+}
+
+.preview-grid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  gap: 1px;
+}
+
+.grid-2x2 {
+  grid-template: repeat(2, 1fr) / repeat(2, 1fr);
+}
+
+.grid-1plus3 {
+  grid-template: repeat(2, 1fr) / 2fr 1fr;
+}
+
+.grid-2vert {
+  grid-template: 1fr / repeat(2, 1fr);
+}
+
+.preview-cell {
+  background: #666;
+  border-radius: 1px;
+}
+
+.preview-cell.large {
+  grid-row: span 2;
+}
+
+.preset-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+#presetName {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: #e8eaed;
+  font-size: 12px;
+}
+
+#presetName:focus {
+  outline: none;
+  border-color: #ff0000;
+}
+
+.preset-list {
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.preset-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #2a2a2a;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.preset-item:hover {
+  background: #333;
+}
+
+.preset-name {
+  font-size: 12px;
+  color: #e8eaed;
+}
+
+.preset-meta {
+  font-size: 10px;
+  color: #999;
+}
+
+.preset-delete {
+  background: none;
+  border: none;
+  color: #ff4444;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.preset-delete:hover {
+  background: rgba(255, 68, 68, 0.2);
+}
+
+.popup-footer {
+  padding-top: 16px;
+  border-top: 1px solid #333;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  width: 100%;
+  background: #ff0000;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #cc0000;
+}
+
+.btn-primary.deactivate {
+  background: #666;
+}
+
+.btn-primary.deactivate:hover {
+  background: #555;
+}
+
+.btn-secondary {
+  background: #333;
+  color: #e8eaed;
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+.btn-secondary:hover {
+  background: #555;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/\* Scrollbar styling \*/
+.preset-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.preset-list::-webkit-scrollbar-track {
+  background: #1f1f1f;
+}
+
+.preset-list::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 3px;
+}
+
+.preset-list::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}

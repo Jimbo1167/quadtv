@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <h1>QuadTV</h1>
+      <div class="status-indicator" id="status"></div>
+    </header>
+
+    <section class="layout-section">
+      <h3>Layout</h3>
+      <div class="layout-grid" id="layoutGrid">
+        <button class="layout-option" data-layout="2x2">
+          <div class="layout-preview">
+            <div class="preview-grid grid-2x2">
+              <div class="preview-cell"></div>
+              <div class="preview-cell"></div>
+              <div class="preview-cell"></div>
+              <div class="preview-cell"></div>
+            </div>
+          </div>
+          <span>2×2 Grid</span>
+        </button>
+
+        <button class="layout-option" data-layout="1+3">
+          <div class="layout-preview">
+            <div class="preview-grid grid-1plus3">
+              <div class="preview-cell large"></div>
+              <div class="preview-cell small"></div>
+              <div class="preview-cell small"></div>
+              <div class="preview-cell small"></div>
+            </div>
+          </div>
+          <span>1+3 Layout</span>
+        </button>
+
+        <button class="layout-option" data-layout="2-vertical">
+          <div class="layout-preview">
+            <div class="preview-grid grid-2vert">
+              <div class="preview-cell"></div>
+              <div class="preview-cell"></div>
+            </div>
+          </div>
+          <span>2 Vertical</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="presets-section">
+      <h3>Presets</h3>
+      <div class="preset-controls">
+        <button id="savePresetBtn" class="btn-secondary">Save Current</button>
+        <input type="text" id="presetName" placeholder="Preset name..." maxlength="30">
+      </div>
+      <div class="preset-list" id="presetList">
+        <!-- Presets will be populated dynamically -->
+      </div>
+    </section>
+
+    <footer class="popup-footer">
+      <button id="toggleBtn" class="btn-primary">Activate QuadTV</button>
+    </footer>
+  </div>
+
+  <script src="../shared/messageBus.js"></script>
+  <script src="../shared/layoutEngine.js"></script>
+  <script src="../shared/storageManager.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
