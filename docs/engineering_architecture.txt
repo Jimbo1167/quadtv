@@ -1,0 +1,96 @@
+QuadTV: High-Level Engineering Architecture
+
+This document outlines the primary software components of the QuadTV extension. It is designed to support the features defined in the UX Requirements document by promoting Separation of Concerns. Components are decoupled and communicate via a central Message Bus, ensuring the system is testable, maintainable, and extensible.
+Component Breakdown
+
+[E-BG] BackgroundController (Background Script)
+
+    Responsibility: Acts as the central nervous system for browser-level events.
+
+    Key Functions:
+
+        Listens for the toolbar icon click to send activate or deactivate commands to the appropriate tab.
+
+        Registers and listens for keyboard shortcuts.
+
+        Manages the active state of all tabs using QuadTV.
+
+    Interactions: Receives events from the Firefox UI. Dispatches commands to the MessageBus for content scripts to handle.
+
+[E-UI] UIManager (Content Script)
+
+    Responsibility: The sole controller of the webpage's DOM. It manipulates the page based on commands it receives, but contains no business logic itself.
+
+    Key Functions:
+
+        Creates, styles, and destroys <iframe> elements for streams.
+
+        Applies layout styles received from the LayoutEngine.
+
+        Adds/removes visual indicators (e.g., the "active audio" border).
+
+        Shows and hides contextual hover controls (audio, focus, etc.).
+
+    Interactions: Listens for commands from the StreamManager and PopupManager (e.g., showLayout('2x2'), highlightStream(2)).
+
+[E-SM] StreamManager (Content Script)
+
+    Responsibility: Manages the state and content of all video streams.
+
+    Key Functions:
+
+        Maintains an array of stream objects, including their current URL and audio state.
+
+        Handles the logic for muting all streams except the active one.
+
+        Loads new URLs into specific <iframe> elements.
+
+    Interactions: Receives user-intent commands (e.g., setAudio(3)). Executes logic and tells the UIManager how to update the view.
+
+[E-LE] LayoutEngine (Shared Module)
+
+    Responsibility: Provides the CSS and structural data for all supported layouts.
+
+    Key Functions:
+
+        Contains a store of layout definitions (e.g., a JSON object).
+
+        Returns the specific rules needed to render a requested layout.
+
+    Interactions: Provides layout data to the UIManager on command.
+
+[E-POP] PopupManager (Popup Script)
+
+    Responsibility: Manages the UI and logic for the toolbar popup window.
+
+    Key Functions:
+
+        Renders the layout selector and preset lists.
+
+        Listens for user clicks within the popup.
+
+    Interactions: Dispatches commands to the MessageBus based on user selections (e.g., setLayout('1+3'), loadPreset('Sunday Football')).
+
+[E-STORE] StorageManager (Shared Module)
+
+    Responsibility: Handles all data persistence for the extension.
+
+    Key Functions:
+
+        Saves and retrieves user settings (e.g., last-used layout).
+
+        Saves, retrieves, and deletes layout presets using browser.storage.local.
+
+    Interactions: Provides data to the PopupManager and BackgroundController when needed.
+
+[E-BUS] MessageBus (Core Module)
+
+    Responsibility: Facilitates communication between all components.
+
+    Key Functions:
+
+        Allows components to subscribe to specific event types.
+
+        Allows components to publish events with data payloads.
+
+    Interactions: Used by all components to communicate without creating direct dependencies.

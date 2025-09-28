@@ -1,0 +1,21 @@
+Product Brief: QuadTV for Firefox
+Mission Statement (Our North Star)
+
+To provide the most fluid, intuitive, and powerful multi-stream viewing experience for YouTube TV users, transforming a passive viewing session into an active, command-center experience.
+The Problem
+
+Watching multiple live events on YouTube TV's desktop web interface is impossible without clumsy, manual window management. The native "multiview" feature is limited to specific devices and pre-selected, rigid combinations, stripping power users of choice and flexibility. Sports fans can't build their perfect Sunday dashboard, and news junkies can't monitor multiple breaking stories.
+The Solution
+
+QuadTV is a Firefox browser extension that seamlessly integrates with the YouTube TV website. It allows users to instantly create flexible, customizable multi-view layouts (from two to four streams) directly within a single browser tab. With intuitive, on-screen controls for audio and stream management, QuadTV empowers users to take full command of their viewing experience.
+Guiding Principles
+
+These are the core values we will refer to when making any design or engineering decision.
+
+    Control without Clutter: The user should feel powerful, not overwhelmed. Controls are visible when needed and disappear when not, keeping the focus on the content.
+
+    Fluid & Fast: The experience must feel native and performant. Transitions will be smooth, and actions will be instantaneous, with no jarring page reloads.
+
+    Intuitive by Default, Powerful on Demand: A new user should understand the core functionality in seconds. An advanced user should discover deeper features (like saved presets) that enhance their experience over time.
+
+    Extensible by Design: The architecture will be modular, allowing us to easily add new layouts, features, or even support other streaming platforms in the future.

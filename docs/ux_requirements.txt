@@ -1,0 +1,110 @@
+QuadTV: UX Requirements & Feature Specification
+
+This document translates user needs into actionable features and connects them to the engineering components responsible for their implementation. Each requirement is designed to be a testable unit of functionality.
+Section 1: Core Viewing Experience
+
+Requirement ID: UXR-101
+
+    User Story: As a user on YouTube TV, I want to instantly activate a multi-view grid so that I can start watching multiple channels without manually managing windows.
+
+    Feature Hook: [F-101] One-Click Activation
+
+    Engineering Hooks: [E-BG] BackgroundController, [E-UI] UIManager
+
+    Acceptance Criteria:
+
+        When on tv.youtube.com, clicking the QuadTV toolbar icon transforms the tab into the default (2x2) multi-view layout.
+
+        The transition is smooth, without a full-page browser refresh.
+
+        The user's currently-watched channel loads into the top-left stream position.
+
+        Clicking the icon again cleanly returns the page to the standard YouTube TV view.
+
+Requirement ID: UXR-102
+
+    User Story: As a user watching multiple streams, I want to instantly and obviously switch which audio source is playing so I can follow the most important action.
+
+    Feature Hook: [F-201] Contextual Audio Control
+
+    Engineering Hooks: [E-UI] UIManager, [E-SM] StreamManager
+
+    Acceptance Criteria:
+
+        The stream with active audio is clearly indicated by a colored (YouTube red) border.
+
+        Hovering over any non-active stream reveals a "speaker" icon overlay.
+
+        Clicking the speaker icon or the video frame itself makes that stream's audio active.
+
+        The colored border instantly moves to the newly selected active stream.
+
+Requirement ID: UXR-103
+
+    User Story: As a user, I want to quickly maximize a single stream to see more detail, and then easily return to my multi-view grid.
+
+    Feature Hook: [F-202] Focus Mode
+
+    Engineering Hooks: [E-UI] UIManager
+
+    Acceptance Criteria:
+
+        Hovering over any stream reveals an "expand" or "maximize" icon overlay.
+
+        Clicking this icon smoothly animates the selected stream to fill the viewport.
+
+        In Focus Mode, a "minimize" or "return to grid" icon is visible.
+
+        Clicking the "minimize" icon smoothly animates the stream back to its position in the multi-view grid.
+
+Section 2: Customization & Configuration
+
+Requirement ID: UXR-201
+
+    User Story: As a user, I want to choose from different grid layouts so that I can arrange my streams in a way that best suits my needs (e.g., one primary stream and two smaller ones).
+
+    Feature Hook: [F-301] Visual Layout Selector
+
+    Engineering Hooks: [E-POP] PopupManager, [E-LE] LayoutEngine, [E-UI] UIManager
+
+    Acceptance Criteria:
+
+        The toolbar popup displays a clean, graphical representation of available layouts (e.g., 2x2, 1+3, 2-Vertical).
+
+        Clicking a layout option instantly and smoothly rearranges the streams on the page into the new configuration.
+
+        The extension remembers the user's last-selected layout for the next activation.
+
+Requirement ID: UXR-202
+
+    User Story: As a power user who watches the same set of channels regularly, I want to save my entire layout and channel setup so I can load it with a single click.
+
+    Feature Hook: [F-302] Layout Presets
+
+    Engineering Hooks: [E-POP] PopupManager, [E-STORE] StorageManager, [E-SM] StreamManager
+
+    Acceptance Criteria:
+
+        The toolbar popup has a "Save current layout as preset" button.
+
+        Users can name their presets (e.g., "Sunday Football," "Morning News").
+
+        Saved presets are listed in the popup.
+
+        Clicking a saved preset automatically configures the layout and loads the correct channels into their respective streams.
+
+Requirement ID: UXR-203
+
+    User Story: As a user, I want to easily change the channel within a single stream without disrupting the others.
+
+    Feature Hook: [F-203] Quick Channel Swap
+
+    Engineering Hooks: [E-UI] UIManager, [E-SM] StreamManager
+
+    Acceptance Criteria:
+
+        Hovering over a stream reveals a "change channel" or "remote" icon.
+
+        Clicking it opens a non-intrusive overlay with a search bar or a compact guide.
+
+        Selecting a new channel loads it only within that specific stream's frame.
