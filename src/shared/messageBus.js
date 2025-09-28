@@ -35,3 +35,8 @@ class MessageBus {
 
 // Create global instance
 window.QuadTVMessageBus = window.QuadTVMessageBus || new MessageBus();
+
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { MessageBus };
+}

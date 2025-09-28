@@ -11,13 +11,13 @@ QuadTV is a Firefox browser extension that enables multi-stream viewing for YouT
 This project follows a modular, message-driven architecture with clear separation of concerns:
 
 ### Core Components
-- **[E-BG] BackgroundController**: Central nervous system handling browser events, toolbar clicks, and keyboard shortcuts
-- **[E-UI] UIManager**: Sole controller of DOM manipulation, handles iframe creation/styling and visual indicators
-- **[E-SM] StreamManager**: Manages stream state, content, and audio switching logic
-- **[E-LE] LayoutEngine**: Provides CSS and structural data for all supported layouts (2x2, 1+3, etc.)
-- **[E-POP] PopupManager**: Handles toolbar popup UI and layout selection
+- **[E-BG] BackgroundController**: Central nervous system handling browser events, toolbar clicks, keyboard shortcuts, and **multi-tab coordination**
+- **[E-UI] UIManager**: Controls overlay UI and visual indicators for the control tab
+- **[E-SM] StreamManager**: Manages **multi-tab state**, coordinates audio switching, and handles tab lifecycle
+- **[E-LE] LayoutEngine**: Provides layout definitions for tab arrangement and visual coordination
+- **[E-POP] PopupManager**: Handles toolbar popup UI, layout selection, and **tab status display**
 - **[E-STORE] StorageManager**: Handles data persistence for settings and presets
-- **[E-BUS] MessageBus**: Central communication hub enabling loose coupling between components
+- **[E-BUS] MessageBus**: Central communication hub enabling loose coupling between components **across multiple tabs**
 
 ### Communication Pattern
 Components communicate exclusively through the MessageBus to maintain modularity and testability. No direct dependencies between components.
@@ -58,7 +58,8 @@ Components communicate exclusively through the MessageBus to maintain modularity
 
 ## Technical Constraints
 - Must work within YouTube TV's existing DOM structure
-- Iframe-based architecture for stream isolation
-- Memory-conscious stream management
-- Smooth animations for layout transitions
+- **Multi-tab architecture** for stream management (iframe embedding blocked by CSP)
+- Memory-conscious tab coordination
+- Smooth transitions for tab switching
 - No full-page refreshes during mode switching
+- Browser-level audio control for reliable muting

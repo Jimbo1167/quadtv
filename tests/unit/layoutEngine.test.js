@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+// LayoutEngine test file
 
 // Mock browser APIs
 global.browser = {
@@ -10,8 +10,8 @@ global.browser = {
   }
 };
 
-// Load the LayoutEngine class
-import '../../src/shared/layoutEngine.js';
+// Import LayoutEngine for testing
+const { LayoutEngine } = require('../../src/shared/layoutEngine.js');
 
 describe('LayoutEngine', () => {
   let layoutEngine;

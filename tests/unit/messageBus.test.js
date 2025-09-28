@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+// MessageBus test file
 
 // Mock browser APIs
 global.browser = {
@@ -10,8 +10,8 @@ global.browser = {
   }
 };
 
-// Load the MessageBus class
-import '../../src/shared/messageBus.js';
+// Import MessageBus for testing
+const { MessageBus } = require('../../src/shared/messageBus.js');
 
 describe('MessageBus', () => {
   let messageBus;

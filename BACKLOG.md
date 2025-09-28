@@ -10,16 +10,25 @@
   - Test: Icon is disabled on non-YouTube TV pages
   - Test: State persists correctly across tab reloads
 
-- [ ] **QTV-002**: Create basic 2x2 grid overlay
-  - Test: Overlay covers entire viewport
-  - Test: Grid shows 4 equal iframe containers
-  - Test: Current channel loads in top-left stream
-  - Test: Clean deactivation restores original page
+- [x] **QTV-002**: Create basic 2x2 grid overlay *(ARCHITECTURE PIVOTED TO MULTI-TAB)*
+  - ✅ Test: Multi-tab coordination works
+  - ✅ Test: 4 YouTube TV tabs can be managed simultaneously
+  - ✅ Test: Current channel integration (each tab shows native YouTube TV)
+  - ✅ Test: Clean activation/deactivation with tab cleanup
+  - ✅ Test: Visual indicators in each tab show stream status
+  - ✅ Test: Prototype validated multi-tab approach as viable
+  - ✅ Implementation: Refactored UIManager to use tab indicators instead of iframes
+  - ✅ Implementation: Updated StreamManager for cross-tab coordination
+  - ✅ Implementation: Enhanced BackgroundController with multi-tab management
 
-- [ ] **QTV-003**: Implement basic iframe stream loading
-  - Test: Current YouTube TV URL loads correctly in iframe
-  - Test: Each iframe can load different YouTube TV URLs
-  - Test: Iframes are isolated and don't interfere with each other
+- [x] **QTV-003**: Implement multi-tab stream coordination *(COMPLETED)*
+  - ✅ Test: Browser-level tab muting works reliably
+  - ✅ Test: Cross-tab audio switching functions correctly
+  - ✅ Test: Navigation state tracking during YouTube TV SPA changes
+  - ✅ Test: Tab lifecycle management (creation, cleanup, recovery)
+  - ✅ Implementation: Browser-level tab muting for reliable audio control
+  - ✅ Implementation: Navigation state tracking and tab re-synchronization
+  - ✅ Implementation: Content script coordination with background script
 
 ### Sprint 2: Audio Management
 **Goal**: Implement audio switching and visual indicators

@@ -1,7 +1,8 @@
 class StreamManager {
   constructor() {
-    this.streams = [];
-    this.activeAudioStream = 0;
+    this.streamTabs = new Map(); // Map<streamIndex, tabId>
+    this.activeAudioTab = null;
+    this.currentStreamIndex = null;
     this.messageBus = window.QuadTVMessageBus;
     this.storageManager = window.QuadTVStorageManager;
     this.init();
@@ -12,147 +13,145 @@ class StreamManager {
   }
 
   setupMessageBusListeners() {
-    this.messageBus.subscribe('UI_ACTIVATED', () => this.onUIActivated());
-    this.messageBus.subscribe('UI_DEACTIVATED', () => this.onUIDeactivated());
-    this.messageBus.subscribe('STREAM_ACTION', (data) => this.handleStreamAction(data));
+    this.messageBus.subscribe('QUADTV_ACTIVATED', (data) => this.onQuadTVActivated(data));
+    this.messageBus.subscribe('QUADTV_DEACTIVATED', () => this.onQuadTVDeactivated());
+    this.messageBus.subscribe('AUDIO_CHANGED', (data) => this.onAudioChanged(data));
+    this.messageBus.subscribe('SET_AUDIO_STATE', (data) => this.setAudioState(data));
     this.messageBus.subscribe('LOAD_PRESET', (data) => this.loadPreset(data.preset));
   }
 
-  onUIActivated() {
-    this.initializeStreams();
-    this.loadCurrentChannel();
+  onQuadTVActivated(data) {
+    console.log('🎬 StreamManager: QuadTV activated', data);
+
+    // Store tab mapping and state
+    this.streamTabs = new Map(data.streamTabs);
+    this.activeAudioTab = data.activeAudioTab;
+
+    // Determine which stream this tab represents
+    const currentTabId = this.getCurrentTabId();
+    for (const [streamIndex, tabId] of this.streamTabs.entries()) {
+      if (tabId === currentTabId) {
+        this.currentStreamIndex = streamIndex;
+        break;
+      }
+    }
+
+    console.log(`🎬 This tab is stream ${this.currentStreamIndex}`);
   }
 
-  onUIDeactivated() {
-    this.streams = [];
-    this.activeAudioStream = 0;
+  onQuadTVDeactivated() {
+    console.log('🎬 StreamManager: QuadTV deactivated');
+    this.streamTabs.clear();
+    this.activeAudioTab = null;
+    this.currentStreamIndex = null;
   }
 
-  initializeStreams() {
-    const streamCount = this.getStreamCount();
-    this.streams = Array(streamCount).fill(null).map((_, index) => ({
-      id: index,
-      url: '',
-      isLoaded: false,
-      hasAudio: index === 0
-    }));
-
-    this.activeAudioStream = 0;
-    this.messageBus.publish('HIGHLIGHT_STREAM', { streamIndex: 0 });
+  onAudioChanged(data) {
+    console.log('🎬 StreamManager: Audio changed to tab', data.activeAudioTab);
+    this.activeAudioTab = data.activeAudioTab;
   }
 
+  setAudioState(data) {
+    console.log(`🎬 StreamManager: Setting audio ${data.hasAudio ? 'ON' : 'OFF'} for stream ${data.streamIndex}`);
+    // Audio control is handled by UIManager, this is for coordination
+  }
+
+  getCurrentTabId() {
+    return window.quadTVCurrentTabId;
+  }
+
+  // Multi-tab approach: streams are managed at the browser tab level
+  // Each tab contains its own YouTube TV content
   getStreamCount() {
-    return 4;
+    return this.streamTabs.size;
   }
 
-  async loadCurrentChannel() {
-    const currentUrl = window.location.href;
-    if (this.isValidYouTubeTVUrl(currentUrl)) {
-      await this.setStreamUrl(0, currentUrl);
-    }
+  getCurrentStreamIndex() {
+    return this.currentStreamIndex;
   }
 
-  handleStreamAction(data) {
-    const { streamIndex, action } = data;
-
-    switch (action) {
-      case 'toggle-audio':
-        this.setActiveAudio(streamIndex);
-        break;
-      case 'focus':
-        this.focusStream(streamIndex);
-        break;
-      case 'change-channel':
-        this.openChannelSelector(streamIndex);
-        break;
-    }
+  isAudioActiveForThisTab() {
+    const currentTabId = this.getCurrentTabId();
+    return currentTabId === this.activeAudioTab;
   }
 
-  setActiveAudio(streamIndex) {
-    if (streamIndex >= this.streams.length) return;
+  // Audio switching is now handled by background script through browser tab API
+  requestAudioSwitch(streamIndex) {
+    console.log(`🎬 StreamManager: Requesting audio switch to stream ${streamIndex}`);
 
-    this.streams.forEach((stream, index) => {
-      stream.hasAudio = index === streamIndex;
+    // Send message to background script to handle audio switching
+    browser.runtime.sendMessage({
+      type: 'SWITCH_AUDIO',
+      streamIndex: streamIndex
+    }).catch(error => {
+      console.error('Failed to request audio switch:', error);
     });
-
-    this.activeAudioStream = streamIndex;
-    this.messageBus.publish('HIGHLIGHT_STREAM', { streamIndex });
-    this.messageBus.publish('AUDIO_CHANGED', { activeStream: streamIndex });
   }
 
-  async setStreamUrl(streamIndex, url) {
-    if (streamIndex >= this.streams.length) return false;
-
+  // In multi-tab approach, each tab navigates independently
+  // URL changes are handled by YouTube TV's own navigation
+  async navigateToUrl(url) {
     if (!this.isValidYouTubeTVUrl(url)) {
       console.error('Invalid YouTube TV URL:', url);
       return false;
     }
 
-    this.streams[streamIndex].url = url;
-    this.streams[streamIndex].isLoaded = true;
-
-    this.messageBus.publish('STREAM_URL_CHANGED', {
-      streamIndex,
-      url,
-      stream: this.streams[streamIndex]
-    });
-
+    console.log(`🎬 StreamManager: Navigating to ${url}`);
+    window.location.href = url;
     return true;
   }
 
-  focusStream(streamIndex) {
-    this.messageBus.publish('FOCUS_STREAM', { streamIndex });
+  // Focus in multi-tab approach means bringing tab to front
+  focusThisTab() {
+    // This would be handled by background script focusing the tab
+    browser.runtime.sendMessage({
+      type: 'FOCUS_TAB',
+      streamIndex: this.currentStreamIndex
+    }).catch(error => {
+      console.error('Failed to focus tab:', error);
+    });
   }
 
-  openChannelSelector(streamIndex) {
-    this.messageBus.publish('OPEN_CHANNEL_SELECTOR', { streamIndex });
+  // Channel selection can be done through YouTube TV's native interface
+  openChannelSelector() {
+    // Navigate to YouTube TV browse page for channel selection
+    this.navigateToUrl('https://tv.youtube.com/browse');
   }
 
+  // Preset saving in multi-tab approach requires coordination with background
   async saveAsPreset(name) {
-    const preset = {
-      layout: this.getCurrentLayout(),
-      streams: this.streams.map(stream => ({
-        url: stream.url,
-        isLoaded: stream.isLoaded
-      })),
-      activeAudioStream: this.activeAudioStream,
-      timestamp: Date.now()
-    };
-
-    const success = await this.storageManager.savePreset(name, preset);
-    if (success) {
-      this.messageBus.publish('PRESET_SAVED', { name, preset });
-    }
-    return success;
-  }
-
-  async loadPreset(presetName) {
-    const presets = await this.storageManager.getPresets();
-    const preset = presets[presetName];
-
-    if (!preset) {
-      console.error('Preset not found:', presetName);
-      return false;
-    }
-
-    this.messageBus.publish('SET_LAYOUT', { layout: preset.layout });
-
-    setTimeout(() => {
-      preset.streams.forEach((streamData, index) => {
-        if (streamData.isLoaded && streamData.url) {
-          this.setStreamUrl(index, streamData.url);
-        }
+    try {
+      const response = await browser.runtime.sendMessage({
+        type: 'SAVE_PRESET',
+        name: name
       });
 
-      this.setActiveAudio(preset.activeAudioStream);
-    }, 100);
-
-    this.messageBus.publish('PRESET_LOADED', { name: presetName, preset });
-    return true;
+      if (response.success) {
+        this.messageBus.publish('PRESET_SAVED', { name, preset: response.preset });
+      }
+      return response.success;
+    } catch (error) {
+      console.error('Failed to save preset:', error);
+      return false;
+    }
   }
 
-  getCurrentLayout() {
-    return window.QuadTVUIManager?.currentLayout || '2x2';
+  // Preset loading in multi-tab approach requires background coordination
+  async loadPreset(presetName) {
+    try {
+      const response = await browser.runtime.sendMessage({
+        type: 'LOAD_PRESET',
+        name: presetName
+      });
+
+      if (response.success) {
+        this.messageBus.publish('PRESET_LOADED', { name: presetName, preset: response.preset });
+      }
+      return response.success;
+    } catch (error) {
+      console.error('Failed to load preset:', error);
+      return false;
+    }
   }
 
   isValidYouTubeTVUrl(url) {
@@ -161,8 +160,18 @@ class StreamManager {
 
   getStreamData() {
     return {
-      streams: [...this.streams],
-      activeAudioStream: this.activeAudioStream
+      streamTabs: Array.from(this.streamTabs.entries()),
+      activeAudioTab: this.activeAudioTab,
+      currentStreamIndex: this.currentStreamIndex
+    };
+  }
+
+  // Get information about this tab's role in the multi-tab setup
+  getTabInfo() {
+    return {
+      streamIndex: this.currentStreamIndex,
+      isAudioActive: this.isAudioActiveForThisTab(),
+      totalStreams: this.getStreamCount()
     };
   }
 }

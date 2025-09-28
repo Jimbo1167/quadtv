@@ -509,16 +509,16 @@ describe('UIManager - QTV-002 Tests', () => {
       expect(uiManager.messageBus.publish).not.toHaveBeenCalledWith('UI_DEACTIVATED');
     });
 
-    test('should update stream URL via message bus', () => {
-      uiManager.activate();
-      const testUrl = 'https://tv.youtube.com/watch/new-video';
+    test('should handle tab ID correctly for stream identification', () => {
+      window.quadTVCurrentTabId = 125;
 
-      uiManager.updateStreamUrl(1, testUrl);
+      uiManager.onQuadTVActivated({
+        streamTabs: [[0, 123], [1, 124], [2, 125], [3, 126]],
+        activeAudioTab: 123
+      });
 
-      const secondStream = uiManager.streams[1];
-      const iframe = secondStream.querySelector('.quadtv-iframe');
-      expect(iframe.src).toBe(testUrl);
-      expect(secondStream.classList.add).toHaveBeenCalledWith('loading');
+      expect(uiManager.getCurrentTabId()).toBe(125);
+      expect(uiManager.indicator.textContent).toContain('Stream 2');
     });
 
     test('should validate YouTube TV URLs correctly', () => {

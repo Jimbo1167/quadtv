@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube TV iframe Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        iframe {
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+        .console-log {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            min-height: 100px;
+            overflow-y: auto;
+        }
+        .error { color: #ff4444; }
+        .success { color: #44ff44; }
+        .warning { color: #ffaa44; }
+    </style>
+</head>
+<body>
+    <h1>🧪 YouTube TV iframe Embedding Test</h1>
+
+    <div class="test-container">
+        <h2>Test 1: YouTube TV Home Page</h2>
+        <p>Testing: <code>https://tv.youtube.com</code></p>
+        <iframe id="test1" src="https://tv.youtube.com" width="800" height="400">
+            Your browser doesn't support iframes.
+        </iframe>
+    </div>
+
+    <div class="test-container">
+        <h2>Test 2: YouTube TV Watch Page</h2>
+        <p>Testing: <code>https://tv.youtube.com/watch/abc123</code></p>
+        <iframe id="test2" src="https://tv.youtube.com/watch/abc123" width="800" height="400">
+            Your browser doesn't support iframes.
+        </iframe>
+    </div>
+
+    <div class="test-container">
+        <h2>Test 3: YouTube TV Browse Page</h2>
+        <p>Testing: <code>https://tv.youtube.com/browse</code></p>
+        <iframe id="test3" src="https://tv.youtube.com/browse" width="800" height="400">
+            Your browser doesn't support iframes.
+        </iframe>
+    </div>
+
+    <div class="test-container">
+        <h2>📊 Test Results & Console Output</h2>
+        <p>Open your browser's Developer Tools (F12) and check the Console tab for errors. Expected errors:</p>
+        <ul>
+            <li><span class="error">X-Frame-Options: DENY</span> - YouTube TV blocks iframe embedding</li>
+            <li><span class="error">Content Security Policy</span> - CSP prevents embedding</li>
+            <li><span class="success">No errors</span> - iframe embedding works! 🎉</li>
+        </ul>
+
+        <h3>🔍 What to look for:</h3>
+        <div class="console-log" id="console-output">
+            Waiting for iframe load results...
+
+            Expected error examples:
+            ❌ Refused to display 'https://tv.youtube.com/' in a frame because it set 'X-Frame-Options' to 'deny'.
+            ❌ Refused to frame 'https://tv.youtube.com/' because it violates the following Content Security Policy...
+            ✅ [If no errors] = iframe embedding works!
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>📋 Instructions</h2>
+        <ol>
+            <li><strong>Open this file</strong> in Firefox (or any browser)</li>
+            <li><strong>Open Developer Tools</strong> (Press F12 or right-click → "Inspect Element")</li>
+            <li><strong>Click the "Console" tab</strong> in Developer Tools</li>
+            <li><strong>Wait 10-15 seconds</strong> for iframes to attempt loading</li>
+            <li><strong>Look for error messages</strong> in the console (red text)</li>
+            <li><strong>Report back</strong> what you see:
+                <ul>
+                    <li>Do the iframes show YouTube TV content?</li>
+                    <li>Are there any red error messages in the console?</li>
+                    <li>What specific error messages appear?</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <script>
+        // Log iframe load events
+        document.addEventListener('DOMContentLoaded', function() {
+            const iframes = document.querySelectorAll('iframe');
+            const output = document.getElementById('console-output');
+
+            function addLog(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.innerHTML = `[${timestamp}] <span class="${type}">${message}</span>`;
+                output.appendChild(logEntry);
+                output.scrollTop = output.scrollHeight;
+            }
+
+            addLog('🧪 Starting iframe tests...', 'success');
+
+            iframes.forEach((iframe, index) => {
+                const testNum = index + 1;
+
+                iframe.onload = function() {
+                    addLog(`✅ Test ${testNum}: iframe loaded successfully - ${iframe.src}`, 'success');
+                    try {
+                        // Try to access iframe content (will fail if cross-origin)
+                        const doc = iframe.contentDocument;
+                        addLog(`✅ Test ${testNum}: Can access iframe content - embedding likely works!`, 'success');
+                    } catch (e) {
+                        addLog(`⚠️ Test ${testNum}: Iframe loaded but content access blocked (normal for cross-origin)`, 'warning');
+                    }
+                };
+
+                iframe.onerror = function() {
+                    addLog(`❌ Test ${testNum}: iframe failed to load - ${iframe.src}`, 'error');
+                };
+
+                // Timeout check
+                setTimeout(() => {
+                    if (!iframe.src || iframe.src === 'about:blank') {
+                        addLog(`⏰ Test ${testNum}: iframe hasn't loaded after 10 seconds`, 'warning');
+                    }
+                }, 10000);
+            });
+
+            // Check for console errors after a delay
+            setTimeout(() => {
+                addLog('⏰ 15 seconds elapsed - check browser console for X-Frame-Options or CSP errors', 'warning');
+            }, 15000);
+        });
+    </script>
+</body>
+</html>

@@ -3,7 +3,9 @@ class UIManager {
     this.isActive = false;
     this.currentLayout = '2x2';
     this.container = null;
-    this.streams = [];
+    this.streamTabs = new Map(); // Map<streamIndex, tabId>
+    this.activeAudioTab = null;
+    this.isControlTab = false;
     this.messageBus = window.QuadTVMessageBus;
     this.layoutEngine = window.QuadTVLayoutEngine;
     this.init();
@@ -14,264 +16,196 @@ class UIManager {
   }
 
   setupMessageBusListeners() {
-    this.messageBus.subscribe('ACTIVATE_UI', () => this.activate());
-    this.messageBus.subscribe('DEACTIVATE_UI', () => this.deactivate());
+    this.messageBus.subscribe('QUADTV_ACTIVATED', (data) => this.onQuadTVActivated(data));
+    this.messageBus.subscribe('QUADTV_DEACTIVATED', () => this.deactivate());
+    this.messageBus.subscribe('AUDIO_CHANGED', (data) => this.onAudioChanged(data));
+    this.messageBus.subscribe('SET_AUDIO_STATE', (data) => this.setAudioState(data));
     this.messageBus.subscribe('SET_LAYOUT', (data) => this.setLayout(data.layout));
     this.messageBus.subscribe('HIGHLIGHT_STREAM', (data) => this.highlightStream(data.streamIndex));
     this.messageBus.subscribe('SHOW_CONTROLS', (data) => this.showControls(data.streamIndex));
     this.messageBus.subscribe('HIDE_CONTROLS', (data) => this.hideControls(data.streamIndex));
-    this.messageBus.subscribe('STREAM_URL_CHANGED', (data) => this.updateStreamUrl(data.streamIndex, data.url));
   }
 
-  updateStreamUrl(streamIndex, url) {
-    if (this.streams[streamIndex]) {
-      const iframe = this.streams[streamIndex].querySelector('.quadtv-iframe');
-      if (iframe && this.isValidYouTubeTVUrl(url)) {
-        iframe.src = url;
+  onQuadTVActivated(data) {
+    console.log('📺 Tab: QuadTV activated', data);
 
-        // Add loading state
-        this.streams[streamIndex].classList.add('loading');
-        this.streams[streamIndex].classList.remove('error');
+    // Store tab mapping and state
+    this.streamTabs = new Map(data.streamTabs);
+    this.activeAudioTab = data.activeAudioTab;
+    this.isControlTab = this.streamTabs.get(0) === this.getCurrentTabId();
 
-        iframe.onload = () => {
-          this.streams[streamIndex].classList.remove('loading');
-        };
+    this.activate();
+  }
 
-        iframe.onerror = () => {
-          this.streams[streamIndex].classList.remove('loading');
-          this.streams[streamIndex].classList.add('error');
-        };
+  onAudioChanged(data) {
+    console.log('🔊 Tab: Audio changed', data);
+    this.activeAudioTab = data.activeAudioTab;
+    this.updateAudioIndicator();
+  }
+
+  setAudioState(data) {
+    console.log(`🔊 Tab: Setting audio ${data.hasAudio ? 'ON' : 'OFF'} (stream ${data.streamIndex})`);
+
+    const video = document.querySelector('video');
+    if (video) {
+      if (data.hasAudio) {
+        video.muted = false;
+        video.play().catch(e => console.log('Play failed:', e));
+        console.log('🔊 Audio enabled for this tab');
+      } else {
+        video.muted = true;
+        console.log('🔇 Audio muted for this tab');
       }
     }
+
+    this.updateAudioIndicator();
+  }
+
+  getCurrentTabId() {
+    // In a real implementation, this would be provided by the background script
+    // For now, we'll use a placeholder that gets set by the background script
+    return window.quadTVCurrentTabId;
   }
 
   activate() {
     if (this.isActive) return;
 
-    this.hideOriginalContent();
-    this.createContainer();
-    this.createStreams();
-    this.applyLayout();
-    this.loadCurrentChannel();
+    this.createIndicator();
     this.isActive = true;
 
+    console.log('📺 Tab: UI activated with indicator');
     this.messageBus.publish('UI_ACTIVATED');
   }
 
   deactivate() {
     if (!this.isActive) return;
 
-    this.removeContainer();
-    this.showOriginalContent();
+    this.removeIndicator();
     this.isActive = false;
 
+    console.log('📺 Tab: UI deactivated');
     this.messageBus.publish('UI_DEACTIVATED');
   }
 
-  hideOriginalContent() {
-    // Hide the original YouTube TV interface
-    const body = document.body;
-    if (body) {
-      body.style.overflow = 'hidden';
-      // Store original styles for restoration
-      this.originalBodyStyles = {
-        overflow: body.style.overflow || '',
-        margin: body.style.margin || '',
-        padding: body.style.padding || ''
-      };
-    }
-  }
-
-  showOriginalContent() {
-    // Restore the original YouTube TV interface
-    const body = document.body;
-    if (body && this.originalBodyStyles) {
-      body.style.overflow = this.originalBodyStyles.overflow;
-      body.style.margin = this.originalBodyStyles.margin;
-      body.style.padding = this.originalBodyStyles.padding;
-    }
-  }
-
-  createContainer() {
-    this.container = document.createElement('div');
-    this.container.id = 'quadtv-container';
-    this.container.className = 'quadtv-grid-container';
-
-    // Set the container to cover the entire viewport
-    this.container.style.cssText = `
+  createIndicator() {
+    this.indicator = document.createElement('div');
+    this.indicator.id = 'quadtv-tab-indicator';
+    this.indicator.style.cssText = `
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: #000;
+      top: 10px;
+      right: 10px;
+      background: #ff0000;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      font-weight: bold;
       z-index: 10000;
-      overflow: hidden;
+      cursor: pointer;
+      user-select: none;
     `;
 
-    document.body.appendChild(this.container);
+    this.updateIndicatorText();
+
+    // Add click handler for audio switching
+    this.indicator.addEventListener('click', () => {
+      this.handleIndicatorClick();
+    });
+
+    document.body.appendChild(this.indicator);
   }
 
-  removeContainer() {
-    if (this.container) {
-      this.container.remove();
-      this.container = null;
-      this.streams = [];
+  removeIndicator() {
+    if (this.indicator) {
+      this.indicator.remove();
+      this.indicator = null;
     }
   }
 
-  createStreams() {
-    const layout = this.layoutEngine.getLayout(this.currentLayout);
-    this.streams = [];
+  updateIndicatorText() {
+    if (!this.indicator) return;
 
-    layout.streams.forEach((streamConfig, index) => {
-      const streamElement = this.createStreamElement(index, streamConfig);
-      this.streams.push(streamElement);
-      this.container.appendChild(streamElement);
-    });
-  }
+    const currentTabId = this.getCurrentTabId();
+    let streamIndex = null;
 
-  loadCurrentChannel() {
-    // Get the current YouTube TV URL and load it into the first stream (top-left)
-    const currentUrl = window.location.href;
-    if (this.isValidYouTubeTVUrl(currentUrl) && this.streams.length > 0) {
-      const firstStreamIframe = this.streams[0].querySelector('.quadtv-iframe');
-      if (firstStreamIframe) {
-        // Set iframe src to current page URL
-        firstStreamIframe.src = currentUrl;
-
-        // Add loading indicator
-        this.streams[0].classList.add('loading');
-
-        // Handle iframe load
-        firstStreamIframe.onload = () => {
-          this.streams[0].classList.remove('loading');
-          this.messageBus.publish('STREAM_LOADED', {
-            streamIndex: 0,
-            url: currentUrl
-          });
-        };
-
-        firstStreamIframe.onerror = () => {
-          this.streams[0].classList.remove('loading');
-          this.streams[0].classList.add('error');
-        };
+    // Find which stream this tab represents
+    for (const [index, tabId] of this.streamTabs.entries()) {
+      if (tabId === currentTabId) {
+        streamIndex = index;
+        break;
       }
+    }
+
+    if (streamIndex !== null) {
+      const isAudioActive = currentTabId === this.activeAudioTab;
+      const audioIcon = isAudioActive ? '🔊' : '🔇';
+      const audioText = isAudioActive ? 'AUDIO' : 'MUTED';
+      this.indicator.textContent = `Stream ${streamIndex} - ${audioIcon} ${audioText}`;
+    } else {
+      this.indicator.textContent = 'QuadTV Active';
     }
   }
 
-  isValidYouTubeTVUrl(url) {
-    return url && url.includes('tv.youtube.com');
+  updateAudioIndicator() {
+    this.updateIndicatorText();
   }
 
-  createStreamElement(index, config) {
-    const streamDiv = document.createElement('div');
-    streamDiv.className = 'quadtv-stream';
-    streamDiv.dataset.streamIndex = index;
-    streamDiv.style.gridArea = config.gridArea;
+  handleIndicatorClick() {
+    const currentTabId = this.getCurrentTabId();
+    let streamIndex = null;
 
-    const iframe = document.createElement('iframe');
-    iframe.className = 'quadtv-iframe';
-    iframe.src = 'about:blank';
-    iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
-    iframe.setAttribute('allowfullscreen', '');
-
-    const controls = this.createStreamControls(index);
-
-    streamDiv.appendChild(iframe);
-    streamDiv.appendChild(controls);
-
-    this.setupStreamEventListeners(streamDiv, index);
-
-    return streamDiv;
-  }
-
-  createStreamControls(index) {
-    const controls = document.createElement('div');
-    controls.className = 'quadtv-stream-controls';
-    controls.innerHTML = `
-      <button class="quadtv-audio-btn" data-action="toggle-audio">🔊</button>
-      <button class="quadtv-focus-btn" data-action="focus">⛶</button>
-      <button class="quadtv-channel-btn" data-action="change-channel">📺</button>
-    `;
-    return controls;
-  }
-
-  setupStreamEventListeners(streamElement, index) {
-    streamElement.addEventListener('mouseenter', () => {
-      this.messageBus.publish('STREAM_HOVER_ENTER', { streamIndex: index });
-    });
-
-    streamElement.addEventListener('mouseleave', () => {
-      this.messageBus.publish('STREAM_HOVER_LEAVE', { streamIndex: index });
-    });
-
-    streamElement.addEventListener('click', (e) => {
-      if (e.target.hasAttribute('data-action')) {
-        const action = e.target.getAttribute('data-action');
-        this.messageBus.publish('STREAM_ACTION', {
-          streamIndex: index,
-          action: action
-        });
+    // Find which stream this tab represents
+    for (const [index, tabId] of this.streamTabs.entries()) {
+      if (tabId === currentTabId) {
+        streamIndex = index;
+        break;
       }
-    });
+    }
+
+    if (streamIndex !== null && currentTabId !== this.activeAudioTab) {
+      console.log(`🔊 Tab: Requesting audio switch to stream ${streamIndex}`);
+
+      // Send message to background to switch audio to this tab
+      browser.runtime.sendMessage({
+        type: 'SWITCH_AUDIO',
+        streamIndex: streamIndex
+      }).catch(error => {
+        console.error('Failed to switch audio:', error);
+      });
+    }
   }
+
+  // Multi-tab approach: no longer creating streams in this tab
+  // Each tab displays its own YouTube TV content natively
+  // The indicator shows which tab has audio and allows switching
 
   setLayout(layout) {
     this.currentLayout = layout;
-    if (this.isActive) {
-      this.removeContainer();
-      this.activate();
-    }
-  }
-
-  applyLayout() {
-    const css = this.layoutEngine.generateCSS(this.currentLayout);
-
-    // Apply grid layout to container
-    Object.assign(this.container.style, {
-      display: css.container.display,
-      gridTemplate: css.container.gridTemplate,
-      gap: css.container.gap,
-      padding: '8px',
-      boxSizing: 'border-box'
-    });
-
-    // Set data attribute for CSS targeting
-    this.container.setAttribute('data-layout', this.currentLayout);
-
-    // Apply specific grid areas to stream elements
-    this.streams.forEach((stream, index) => {
-      const streamConfig = css.streams[index];
-      if (streamConfig) {
-        stream.style.gridArea = streamConfig.gridArea;
-      }
-    });
+    // In multi-tab approach, layout changes would be coordinated
+    // across all tabs through the background script
+    this.messageBus.publish('LAYOUT_CHANGED', { layout });
   }
 
   highlightStream(streamIndex) {
-    this.streams.forEach((stream, index) => {
-      if (index === streamIndex) {
-        stream.classList.add('quadtv-audio-active');
-      } else {
-        stream.classList.remove('quadtv-audio-active');
-      }
-    });
+    // In multi-tab approach, highlighting is done via the indicator
+    this.updateAudioIndicator();
   }
 
   showControls(streamIndex) {
-    if (this.streams[streamIndex]) {
-      const controls = this.streams[streamIndex].querySelector('.quadtv-stream-controls');
-      controls.classList.add('visible');
-    }
+    // Controls are now embedded in the indicator
+    // Future: Could show additional controls overlay
   }
 
   hideControls(streamIndex) {
-    if (this.streams[streamIndex]) {
-      const controls = this.streams[streamIndex].querySelector('.quadtv-stream-controls');
-      controls.classList.remove('visible');
-    }
+    // Controls are always visible via indicator
+    // Future: Could hide additional controls overlay
   }
 }
 
 window.QuadTVUIManager = new UIManager();
+
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { UIManager };
+}

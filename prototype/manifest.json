@@ -1,0 +1,30 @@
+{
+  "manifest_version": 2,
+  "name": "QuadTV Prototype - Multi-Tab",
+  "version": "0.0.1",
+  "description": "Prototype testing multi-tab approach for QuadTV",
+
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "*://tv.youtube.com/*"
+  ],
+
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://tv.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+
+  "browser_action": {
+    "default_title": "QuadTV Prototype - Test Multi-Tab",
+    "default_popup": "popup.html"
+  }
+}

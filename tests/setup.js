@@ -1,5 +1,4 @@
 // Test setup file
-import { jest } from '@jest/globals';
 
 // Mock browser APIs for all tests
 global.browser = {
