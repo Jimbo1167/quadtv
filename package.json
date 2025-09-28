@@ -1,0 +1,32 @@
+{
+  "name": "quadtv",
+  "version": "0.1.0",
+  "description": "Firefox extension for multi-stream YouTube TV viewing",
+  "main": "src/background/backgroundController.js",
+  "scripts": {
+    "build": "npm run build:dev",
+    "build:dev": "web-ext build --source-dir=src --artifacts-dir=dist",
+    "build:prod": "web-ext build --source-dir=src --artifacts-dir=dist",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "web-ext lint --source-dir=src",
+    "start": "web-ext run --source-dir=src --target=firefox-desktop",
+    "dev": "web-ext run --source-dir=src --target=firefox-desktop --reload"
+  },
+  "keywords": ["firefox", "extension", "youtube-tv", "multiview", "streaming"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "web-ext": "^7.8.0",
+    "@jest/globals": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "testMatch": ["**/tests/**/*.test.js"],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/**/manifest.json"
+    ]
+  }
+}

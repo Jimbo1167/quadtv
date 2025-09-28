@@ -1,0 +1,28 @@
+node_modules/
+dist/
+*.zip
+*.xpi
+
+# Test coverage
+coverage/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Extension artifacts
+web-ext-artifacts/
+
+# Temporary files
+*.tmp
+*.temp
