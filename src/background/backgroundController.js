@@ -176,51 +176,26 @@ class BackgroundController {
   }
 
   async activateQuadTV(controlTab) {
-    console.log('🚀 Background: Activating QuadTV multi-tab mode');
+    console.log('🚀 Background: Activating QuadTV grid mode');
 
     this.controlTabId = controlTab.id;
     this.isActive = true;
 
     try {
-      // Create additional YouTube TV tabs
-      const additionalTabs = await this.createAdditionalTabs();
+      // In iframe-based approach, everything happens in one tab
+      console.log('📺 Activating QuadTV grid in tab:', controlTab.id);
 
-      // Setup stream tab mapping
-      console.log('🗺️ Setting up streamTabs mapping...');
-      this.streamTabs.set(0, controlTab.id); // Original tab = stream 0
-      console.log(`🗺️ Added stream 0 -> tab ${controlTab.id}`);
-      
-      additionalTabs.forEach((tabId, index) => {
-        this.streamTabs.set(index + 1, tabId);
-        console.log(`🗺️ Added stream ${index + 1} -> tab ${tabId}`);
+      // Notify the control tab to activate the grid
+      await browser.tabs.sendMessage(controlTab.id, {
+        type: 'QUADTV_ACTIVATED',
+        currentLayout: this.currentLayout
       });
 
-      // Set first tab as active audio
-      this.activeAudioTab = controlTab.id;
+      // Update icon state
+      this.activeTabStates.set(controlTab.id, true);
+      await this.updateIconState(controlTab.id);
 
-      // Wait for tabs to load
-      await this.delay(1000);
-
-      // Set tab IDs in content scripts
-      await this.setTabIds();
-
-      // Notify all tabs about activation
-      await this.notifyAllTabs('QUADTV_ACTIVATED', {
-        streamTabs: Array.from(this.streamTabs.entries()),
-        activeAudioTab: this.activeAudioTab
-      });
-
-      // Apply browser-level audio control
-      await this.updateBrowserAudioStates();
-
-      // Update icon states
-      for (const [streamIndex, tabId] of this.streamTabs.entries()) {
-        this.activeTabStates.set(tabId, true);
-        await this.updateIconState(tabId);
-      }
-
-      console.log('✅ Background: QuadTV activated successfully');
-      console.log('📊 Stream tabs:', Array.from(this.streamTabs.entries()));
+      console.log('✅ Background: QuadTV grid activated successfully');
 
     } catch (error) {
       console.error('❌ Background: Failed to activate QuadTV:', error);
@@ -269,30 +244,22 @@ class BackgroundController {
   async deactivateQuadTV() {
     console.log('🛑 Background: Deactivating QuadTV');
 
-    // Notify all tabs about deactivation
-    await this.notifyAllTabs('QUADTV_DEACTIVATED');
-
-    // Close additional tabs (keep the original control tab)
-    for (const [streamIndex, tabId] of this.streamTabs.entries()) {
-      if (streamIndex > 0) { // Don't close the original tab (stream 0)
-        try {
-          await browser.tabs.remove(tabId);
-          console.log(`🗑️ Closed stream ${streamIndex} tab:`, tabId);
-        } catch (error) {
-          console.error(`❌ Failed to close tab ${tabId}:`, error);
-        }
-      }
-    }
-
-    // Update icon state for control tab
+    // Notify the control tab about deactivation
     if (this.controlTabId) {
+      try {
+        await browser.tabs.sendMessage(this.controlTabId, {
+          type: 'QUADTV_DEACTIVATED'
+        });
+      } catch (error) {
+        console.log('Could not notify control tab:', error);
+      }
+
+      // Update icon state for control tab
       this.activeTabStates.set(this.controlTabId, false);
       await this.updateIconState(this.controlTabId);
     }
 
     // Reset state
-    this.streamTabs.clear();
-    this.activeAudioTab = null;
     this.controlTabId = null;
     this.isActive = false;
 
@@ -359,6 +326,11 @@ class BackgroundController {
             this.validateExclusiveAudio();
           }, 500);
         }
+        sendResponse({ success: true });
+        break;
+
+      case 'SET_LAYOUT':
+        await this.setLayout(message.layout);
         sendResponse({ success: true });
         break;
 
@@ -445,6 +417,138 @@ class BackgroundController {
 
   isYouTubeTV(url) {
     return url && url.includes('tv.youtube.com');
+  }
+
+  async setLayout(layoutType) {
+    if (!this.isActive) {
+      console.log('📐 Layout: QuadTV not active, ignoring layout change');
+      return;
+    }
+
+    console.log(`📐 Background: Setting layout to ${layoutType}`);
+    this.currentLayout = layoutType;
+
+    try {
+      // Get layout configuration for visual coordination
+      const layoutConfig = this.getLayoutConfig(layoutType);
+      console.log('📐 Layout config:', layoutConfig);
+
+      // Notify the control tab about the layout change
+      if (this.controlTabId) {
+        try {
+          await browser.tabs.sendMessage(this.controlTabId, {
+            type: 'LAYOUT_CHANGED',
+            layout: layoutType,
+            layoutConfig: layoutConfig
+          });
+        } catch (error) {
+          console.log('Could not notify control tab of layout change:', error);
+        }
+      }
+
+      console.log(`✅ Layout: Successfully applied ${layoutType} layout`);
+
+    } catch (error) {
+      console.error('❌ Layout: Failed to apply layout:', error);
+    }
+  }
+
+  getLayoutConfig(layoutType) {
+    // Return layout metadata that tabs can use for visual coordination
+    const layouts = {
+      '2x2': {
+        description: '2×2 Grid Layout',
+        streamRoles: [
+          { position: 'top-left', size: 'quarter', priority: 1 },
+          { position: 'top-right', size: 'quarter', priority: 2 },
+          { position: 'bottom-left', size: 'quarter', priority: 3 },
+          { position: 'bottom-right', size: 'quarter', priority: 4 }
+        ],
+        instructions: 'Arrange browser windows in a 2×2 grid for optimal viewing'
+      },
+      '1+3': {
+        description: '1+3 Focus Layout',
+        streamRoles: [
+          { position: 'main', size: 'large', priority: 1 },
+          { position: 'sidebar-top', size: 'small', priority: 2 },
+          { position: 'sidebar-middle', size: 'small', priority: 3 },
+          { position: 'sidebar-bottom', size: 'small', priority: 4 }
+        ],
+        instructions: 'Primary stream takes 2/3 width, others stack vertically on right'
+      },
+      '2-vertical': {
+        description: '2 Vertical Layout',
+        streamRoles: [
+          { position: 'left', size: 'half', priority: 1 },
+          { position: 'right', size: 'half', priority: 2 }
+        ],
+        instructions: 'Two streams side-by-side, full height'
+      }
+    };
+
+    return layouts[layoutType] || layouts['2x2'];
+  }
+
+  async getScreenInfo() {
+    // Get the current window to determine screen size
+    const currentWindow = await browser.windows.getCurrent();
+    
+    // Use reasonable defaults based on common screen sizes
+    // In a real implementation, we might use the Screen API
+    return {
+      width: 1920,  // Assume 1080p screen
+      height: 1080,
+      availableWidth: 1920,
+      availableHeight: 1040  // Account for taskbar/dock
+    };
+  }
+
+  calculateTabPositions(layoutType, screenInfo) {
+    const { availableWidth, availableHeight } = screenInfo;
+    const margin = 8; // Small margin between windows
+    
+    const layouts = {
+      '2x2': [
+        { x: 0, y: 0, width: availableWidth / 2 - margin, height: availableHeight / 2 - margin },
+        { x: availableWidth / 2 + margin, y: 0, width: availableWidth / 2 - margin, height: availableHeight / 2 - margin },
+        { x: 0, y: availableHeight / 2 + margin, width: availableWidth / 2 - margin, height: availableHeight / 2 - margin },
+        { x: availableWidth / 2 + margin, y: availableHeight / 2 + margin, width: availableWidth / 2 - margin, height: availableHeight / 2 - margin }
+      ],
+      '1+3': [
+        { x: 0, y: 0, width: (availableWidth * 2/3) - margin, height: availableHeight },
+        { x: (availableWidth * 2/3) + margin, y: 0, width: (availableWidth / 3) - margin, height: availableHeight / 3 - margin },
+        { x: (availableWidth * 2/3) + margin, y: availableHeight / 3 + margin, width: (availableWidth / 3) - margin, height: availableHeight / 3 - margin },
+        { x: (availableWidth * 2/3) + margin, y: (availableHeight * 2/3) + margin, width: (availableWidth / 3) - margin, height: availableHeight / 3 - margin }
+      ],
+      '2-vertical': [
+        { x: 0, y: 0, width: availableWidth / 2 - margin, height: availableHeight },
+        { x: availableWidth / 2 + margin, y: 0, width: availableWidth / 2 - margin, height: availableHeight }
+      ]
+    };
+
+    return layouts[layoutType] || layouts['2x2'];
+  }
+
+  async positionTab(tabId, position) {
+    try {
+      // Get the window containing this tab
+      const tab = await browser.tabs.get(tabId);
+      const windowId = tab.windowId;
+
+      // Update window position and size
+      await browser.windows.update(windowId, {
+        left: Math.round(position.x),
+        top: Math.round(position.y),
+        width: Math.round(position.width),
+        height: Math.round(position.height),
+        focused: false  // Don't steal focus
+      });
+
+      console.log(`📐 Positioned tab ${tabId} at (${position.x}, ${position.y}) ${position.width}x${position.height}`);
+
+    } catch (error) {
+      console.error(`❌ Failed to position tab ${tabId}:`, error);
+    }
   }
 
   async recoverStreamMapping() {

@@ -159,18 +159,14 @@ class PopupManager {
     settings.lastLayout = layout;
     await this.storageManager.saveSettings(settings);
 
-    // Send to content script if active
+    // Send to background script if active
     if (this.isActive) {
       try {
-        const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-        const tab = tabs[0];
-
-        if (tab) {
-          await browser.tabs.sendMessage(tab.id, {
-            type: 'SET_LAYOUT',
-            layout: layout
-          });
-        }
+        await browser.runtime.sendMessage({
+          type: 'SET_LAYOUT',
+          layout: layout
+        });
+        console.log(`📐 Popup: Layout changed to ${layout}`);
       } catch (error) {
         console.error('Failed to set layout:', error);
       }

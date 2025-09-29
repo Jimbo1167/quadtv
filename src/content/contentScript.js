@@ -100,6 +100,12 @@ class QuadTVContentScript {
         sendResponse({ success: true });
         break;
 
+      case 'LAYOUT_CHANGED':
+        console.log(`📐 Content: Layout changed to ${message.layout}`);
+        this.messageBus.publish('LAYOUT_CHANGED', message);
+        sendResponse({ success: true });
+        break;
+
       default:
         sendResponse({ success: false, error: 'Unknown message type' });
     }

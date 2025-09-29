@@ -21,6 +21,7 @@ class UIManager {
     this.messageBus.subscribe('AUDIO_CHANGED', (data) => this.onAudioChanged(data));
     this.messageBus.subscribe('SET_AUDIO_STATE', (data) => this.setAudioState(data));
     this.messageBus.subscribe('SET_LAYOUT', (data) => this.setLayout(data.layout));
+    this.messageBus.subscribe('LAYOUT_CHANGED', (data) => this.onLayoutChanged(data));
     this.messageBus.subscribe('HIGHLIGHT_STREAM', (data) => this.highlightStream(data.streamIndex));
     this.messageBus.subscribe('SHOW_CONTROLS', (data) => this.showControls(data.streamIndex));
     this.messageBus.subscribe('HIDE_CONTROLS', (data) => this.hideControls(data.streamIndex));
@@ -143,10 +144,10 @@ class UIManager {
   activate() {
     if (this.isActive) return;
 
-    this.createIndicator();
+    this.createQuadTVGrid();
     this.isActive = true;
 
-    console.log('📺 Tab: UI activated with indicator');
+    console.log('📺 Tab: QuadTV grid activated');
     this.messageBus.publish('UI_ACTIVATED');
   }
 
@@ -159,13 +160,12 @@ class UIManager {
     // Clean up any pending timeouts
     this.clearAudioFlashTimeout();
 
-    // Remove visual indicators
-    this.removeIndicator();
-    this.updatePageBorder(false);
+    // Remove QuadTV grid
+    this.removeQuadTVGrid();
 
     this.isActive = false;
 
-    console.log('📺 Tab: UI deactivated');
+    console.log('📺 Tab: QuadTV grid deactivated');
     this.messageBus.publish('UI_DEACTIVATED');
   }
 
@@ -278,33 +278,220 @@ class UIManager {
     }
   }
 
-  // Multi-tab approach: no longer creating streams in this tab
-  // Each tab displays its own YouTube TV content natively
-  // The indicator shows which tab has audio and allows switching
+  createQuadTVGrid() {
+    // Create main container
+    this.quadTVContainer = document.createElement('div');
+    this.quadTVContainer.id = 'quadtv-container';
 
-  setLayout(layout) {
-    this.currentLayout = layout;
+    // Create grid container
+    this.gridContainer = document.createElement('div');
+    this.gridContainer.className = 'quadtv-grid-container';
+    this.gridContainer.setAttribute('data-layout', this.currentLayout);
 
-    // Preserve audio state during layout changes (QTV-004 requirement)
-    const preservedAudioState = {
-      hasAudio: this.hasAudio,
-      streamIndex: this.streamIndex,
-      activeAudioTab: this.activeAudioTab
-    };
+    // Create stream containers with iframes based on layout
+    this.streams = [];
+    const streamCount = this.getStreamCountForLayout(this.currentLayout);
 
-    // In multi-tab approach, layout changes would be coordinated
-    // across all tabs through the background script
-    this.messageBus.publish('LAYOUT_CHANGED', {
-      layout,
-      preserveAudio: preservedAudioState
+    for (let i = 0; i < streamCount; i++) {
+      const streamContainer = this.createStreamContainer(i);
+      this.streams.push(streamContainer);
+      this.gridContainer.appendChild(streamContainer);
+    }
+
+    this.quadTVContainer.appendChild(this.gridContainer);
+    document.body.appendChild(this.quadTVContainer);
+
+    // Apply initial layout
+    this.updateGridLayout(this.currentLayout);
+
+    // Set first stream as active audio by default
+    this.setActiveAudioStream(0);
+
+    console.log('📺 QuadTV grid created with 4 streams');
+  }
+
+  createStreamContainer(index) {
+    const container = document.createElement('div');
+    container.className = 'quadtv-stream';
+    container.dataset.streamIndex = index;
+
+    // Create iframe for YouTube TV
+    const iframe = document.createElement('iframe');
+    iframe.className = 'quadtv-iframe';
+    iframe.src = 'https://tv.youtube.com';
+    iframe.allow = 'autoplay; fullscreen';
+    iframe.setAttribute('loading', 'lazy');
+
+    // Create stream controls
+    const controls = this.createStreamControls(index);
+
+    container.appendChild(iframe);
+    container.appendChild(controls);
+
+    // Add click handler for audio switching
+    container.addEventListener('click', (e) => {
+      if (!e.target.closest('.quadtv-stream-controls')) {
+        this.setActiveAudioStream(index);
+      }
     });
 
-    // Ensure audio state persists after layout change
-    if (this.hasAudio) {
+    return container;
+  }
+
+  createStreamControls(index) {
+    const controls = document.createElement('div');
+    controls.className = 'quadtv-stream-controls';
+
+    // Audio button
+    const audioBtn = document.createElement('button');
+    audioBtn.className = 'quadtv-audio-btn';
+    audioBtn.innerHTML = '🔊';
+    audioBtn.title = 'Switch audio to this stream';
+    audioBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.setActiveAudioStream(index);
+    };
+
+    // Focus button
+    const focusBtn = document.createElement('button');
+    focusBtn.className = 'quadtv-focus-btn';
+    focusBtn.innerHTML = '⛶';
+    focusBtn.title = 'Focus this stream';
+    focusBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.focusStream(index);
+    };
+
+    controls.appendChild(audioBtn);
+    controls.appendChild(focusBtn);
+
+    return controls;
+  }
+
+  removeQuadTVGrid() {
+    if (this.quadTVContainer) {
+      this.quadTVContainer.remove();
+      this.quadTVContainer = null;
+      this.gridContainer = null;
+      this.streams = [];
+    }
+  }
+
+  setActiveAudioStream(index) {
+    // Remove active class from all streams
+    const streams = document.querySelectorAll('.quadtv-stream');
+    streams.forEach(stream => stream.classList.remove('quadtv-audio-active'));
+
+    // Add active class to selected stream
+    if (streams[index]) {
+      streams[index].classList.add('quadtv-audio-active');
+      this.activeAudioStream = index;
+      console.log(`🔊 Audio switched to stream ${index}`);
+    }
+  }
+
+  focusStream(index) {
+    const stream = document.querySelector(`[data-stream-index="${index}"]`);
+    if (stream) {
+      stream.classList.toggle('focus-mode');
+      console.log(`🎯 Stream ${index} focus toggled`);
+    }
+  }
+
+  getStreamCountForLayout(layout) {
+    const counts = {
+      '2x2': 4,
+      '1+3': 4,
+      '2-vertical': 2
+    };
+    return counts[layout] || 4;
+  }
+
+  setLayout(layout) {
+    console.log(`📐 UI: Setting layout to ${layout}`);
+    this.currentLayout = layout;
+
+    if (!this.isActive) {
+      console.log('📐 UI: QuadTV not active, storing layout preference');
+      return;
+    }
+
+    // Preserve audio state during layout changes
+    const activeStreamIndex = this.findActiveAudioStream();
+
+    // Update the grid layout
+    this.updateGridLayout(layout);
+
+    // Restore audio state after layout change
+    if (activeStreamIndex !== -1) {
       setTimeout(() => {
-        this.validateAudioState();
+        this.setActiveAudioStream(activeStreamIndex);
       }, 100);
     }
+
+    console.log(`✅ UI: Layout changed to ${layout}`);
+  }
+
+  updateGridLayout(layout) {
+    const gridContainer = document.querySelector('.quadtv-grid-container');
+    if (!gridContainer) {
+      console.warn('📐 UI: Grid container not found');
+      return;
+    }
+
+    // Set layout data attribute for CSS styling
+    gridContainer.setAttribute('data-layout', layout);
+
+    // Update grid CSS based on layout
+    const layoutStyles = {
+      '2x2': {
+        'grid-template-columns': '1fr 1fr',
+        'grid-template-rows': '1fr 1fr',
+        'gap': '8px'
+      },
+      '1+3': {
+        'grid-template-columns': '2fr 1fr',
+        'grid-template-rows': '1fr 1fr',
+        'gap': '8px'
+      },
+      '2-vertical': {
+        'grid-template-columns': '1fr 1fr',
+        'grid-template-rows': '1fr',
+        'gap': '8px'
+      }
+    };
+
+    const styles = layoutStyles[layout] || layoutStyles['2x2'];
+    Object.assign(gridContainer.style, {
+      display: 'grid',
+      width: '100%',
+      height: '100%',
+      ...styles
+    });
+
+    // Show/hide streams based on layout requirements
+    const requiredStreams = this.getStreamCountForLayout(layout);
+    const allStreams = document.querySelectorAll('.quadtv-stream');
+
+    allStreams.forEach((stream, index) => {
+      if (index < requiredStreams) {
+        stream.style.display = 'block';
+      } else {
+        stream.style.display = 'none';
+      }
+    });
+
+    console.log(`📐 UI: Grid layout updated to ${layout} with ${requiredStreams} streams`);
+  }
+
+  findActiveAudioStream() {
+    const streams = document.querySelectorAll('.quadtv-stream');
+    for (let i = 0; i < streams.length; i++) {
+      if (streams[i].classList.contains('quadtv-audio-active')) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   validateAudioState() {
@@ -316,6 +503,84 @@ class UIManager {
         this.enableAudio(video);
       }
     }
+  }
+
+  onLayoutChanged(data) {
+    console.log(`📐 Tab: Layout changed to ${data.layout}`, data);
+
+    // Update current layout
+    this.currentLayout = data.layout;
+
+    // Show layout guidance notification for manual window arrangement
+    if (data.layoutConfig) {
+      this.showLayoutGuidance(data.layoutConfig);
+    }
+
+    // Preserve audio state during layout changes
+    if (data.preserveAudio && data.preserveAudio.hasAudio) {
+      setTimeout(() => {
+        this.validateAudioState();
+      }, 100);
+    }
+  }
+
+  showLayoutGuidance(layoutConfig) {
+    // Show a temporary notification with layout instructions
+    const notification = document.createElement('div');
+    notification.className = 'quadtv-layout-notification';
+    notification.innerHTML = `
+      <div class="notification-content">
+        <h4>📐 ${layoutConfig.description}</h4>
+        <p>${layoutConfig.instructions}</p>
+        <small>This notification will disappear in 5 seconds</small>
+      </div>
+    `;
+
+    // Add styles for the notification
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 16px;
+      border-radius: 8px;
+      border: 2px solid #ff0000;
+      max-width: 300px;
+      z-index: 10000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    `;
+
+    notification.querySelector('.notification-content').style.cssText = `
+      margin: 0;
+    `;
+
+    notification.querySelector('h4').style.cssText = `
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      color: #ff0000;
+    `;
+
+    notification.querySelector('p').style.cssText = `
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      line-height: 1.4;
+    `;
+
+    notification.querySelector('small').style.cssText = `
+      color: #ccc;
+      font-size: 12px;
+    `;
+
+    document.body.appendChild(notification);
+
+    // Remove notification after 5 seconds
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 5000);
   }
 
   highlightStream(streamIndex) {
