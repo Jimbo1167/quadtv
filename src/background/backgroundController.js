@@ -474,8 +474,8 @@ class BackgroundController {
 
       // Load the message protocol and iframe script content
       const scriptFiles = [
-        '/src/shared/messageProtocol.js',
-        '/src/content/iframeContentScript.js'
+        'shared/messageProtocol.js',
+        'content/iframeContentScript.js'
       ];
 
       // Try to inject into all YouTube TV tabs

@@ -10,6 +10,7 @@ class UIManager {
     this.layoutEngine = window.QuadTVLayoutEngine;
     this.messageProtocol = new window.QuadTVMessageProtocol();
     this.iframes = []; // Store iframe references for postMessage communication
+    this.iframeBridge = null; // Bridge for cross-origin iframe communication
     this.init();
   }
 
@@ -340,6 +341,9 @@ class UIManager {
     // Apply initial layout
     this.updateGridLayout(this.currentLayout);
 
+    // Initialize iframe bridge for cross-origin communication
+    this.initializeIframeBridge();
+
     // Set first stream as active audio by default
     this.setActiveAudioStream(0);
 
@@ -460,12 +464,13 @@ class UIManager {
   // QTV-025: PostMessage Infrastructure Methods
 
   async onIframeLoaded(iframe, index) {
-    console.log(`📺 Iframe ${index} loaded, injecting content script...`);
+    console.log(`📺 Iframe ${index} loaded, will initialize via bridge...`);
 
-    // Give iframe time to initialize YouTube TV
-    setTimeout(async () => {
-      await this.injectContentScript(iframe, index);
-    }, 2000);
+    // The iframe bridge will handle communication once iframes are registered
+    // Give iframe time to load YouTube TV content
+    setTimeout(() => {
+      this.checkIframeReadiness(iframe, index);
+    }, 3000);
   }
 
   async injectContentScript(iframe, index) {
@@ -585,21 +590,12 @@ class UIManager {
   }
 
   async checkIframeReadiness(iframe, index) {
-    try {
-      // Send readiness check to iframe
-      await this.messageProtocol.sendToIframe(
-        iframe,
-        'IFRAME_READY_CHECK',
-        { streamIndex: index },
-        false
-      );
-      console.log(`📨 Sent readiness check to iframe ${index}`);
-    } catch (error) {
-      console.warn(`Failed to check readiness of iframe ${index}:`, error);
-      // Retry after delay
-      setTimeout(() => {
-        this.checkIframeReadiness(iframe, index);
-      }, 2000);
+    if (this.iframeBridge) {
+      // Use iframe bridge to check readiness
+      this.iframeBridge.sendToIframe(index, 'IFRAME_READY_CHECK', { streamIndex: index });
+      console.log(`📨 Sent readiness check to iframe ${index} via bridge`);
+    } else {
+      console.warn(`📨 IframeBridge not available, skipping readiness check for iframe ${index}`);
     }
   }
 
@@ -638,23 +634,48 @@ class UIManager {
     }
   }
 
-  async sendAudioStateToIframe(streamIndex, hasAudio) {
-    const iframe = this.iframes[streamIndex];
-    if (!iframe) {
-      console.warn(`No iframe reference for stream ${streamIndex}`);
-      return;
-    }
+  initializeIframeBridge() {
+    if (window.QuadTVIframeBridge) {
+      this.iframeBridge = new window.QuadTVIframeBridge();
 
-    try {
-      await this.messageProtocol.sendToIframe(
-        iframe,
-        'SET_AUDIO_STATE',
-        { streamIndex, hasAudio },
-        false
-      );
-      console.log(`📨 Sent audio state ${hasAudio} to iframe ${streamIndex}`);
-    } catch (error) {
-      console.error(`Failed to send audio state to iframe ${streamIndex}:`, error);
+      // Give iframes time to load, then register them
+      setTimeout(() => {
+        this.iframeBridge.registerIframes(this.iframes);
+      }, 2000);
+
+      console.log('📺 IframeBridge initialized');
+    } else {
+      console.error('📺 IframeBridge not available');
+    }
+  }
+
+  async sendAudioStateToIframe(streamIndex, hasAudio) {
+    if (this.iframeBridge) {
+      // Use iframe bridge for cross-origin communication
+      this.iframeBridge.sendToIframe(streamIndex, 'SET_AUDIO_STATE', {
+        streamIndex,
+        hasAudio
+      });
+      console.log(`📨 Sent audio state ${hasAudio} to iframe ${streamIndex} via bridge`);
+    } else {
+      // Fallback to direct postMessage (might not work for cross-origin)
+      const iframe = this.iframes[streamIndex];
+      if (!iframe) {
+        console.warn(`No iframe reference for stream ${streamIndex}`);
+        return;
+      }
+
+      try {
+        await this.messageProtocol.sendToIframe(
+          iframe,
+          'SET_AUDIO_STATE',
+          { streamIndex, hasAudio },
+          false
+        );
+        console.log(`📨 Sent audio state ${hasAudio} to iframe ${streamIndex}`);
+      } catch (error) {
+        console.error(`Failed to send audio state to iframe ${streamIndex}:`, error);
+      }
     }
   }
 

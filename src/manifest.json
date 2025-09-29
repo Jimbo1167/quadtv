@@ -24,6 +24,7 @@
         "shared/layoutEngine.js",
         "shared/storageManager.js",
         "shared/messageProtocol.js",
+        "content/iframeBridge.js",
         "content/uiManager.js",
         "content/streamManager.js",
         "content/contentScript.js"
