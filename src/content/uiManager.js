@@ -325,11 +325,11 @@ class UIManager {
     this.gridContainer.className = 'quadtv-grid-container';
     this.gridContainer.setAttribute('data-layout', this.currentLayout);
 
-    // Create stream containers with iframes based on layout
+    // Create maximum stream containers (4) and show/hide based on layout
     this.streams = [];
-    const streamCount = this.getStreamCountForLayout(this.currentLayout);
+    const maxStreams = 4;
 
-    for (let i = 0; i < streamCount; i++) {
+    for (let i = 0; i < maxStreams; i++) {
       const streamContainer = this.createStreamContainer(i);
       this.streams.push(streamContainer);
       this.gridContainer.appendChild(streamContainer);
@@ -640,6 +640,7 @@ class UIManager {
 
       // Give iframes time to load, then register them
       setTimeout(() => {
+        console.log(`📺 Registering ${this.iframes.length} iframes with bridge`);
         this.iframeBridge.registerIframes(this.iframes);
       }, 2000);
 
@@ -696,6 +697,8 @@ class UIManager {
       console.log('📐 UI: QuadTV not active, storing layout preference');
       return;
     }
+
+    console.log(`📐 UI: Applying layout ${layout} to ${this.isActive ? 'active' : 'inactive'} QuadTV`);
 
     // Preserve audio state during layout changes
     const activeStreamIndex = this.findActiveAudioStream();
@@ -791,6 +794,9 @@ class UIManager {
 
     // Update current layout
     this.currentLayout = data.layout;
+
+    // Apply the visual layout changes
+    this.updateGridLayout(data.layout);
 
     // Show layout guidance notification for manual window arrangement
     if (data.layoutConfig) {
