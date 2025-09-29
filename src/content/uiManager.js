@@ -8,11 +8,47 @@ class UIManager {
     this.isControlTab = false;
     this.messageBus = window.QuadTVMessageBus;
     this.layoutEngine = window.QuadTVLayoutEngine;
+    this.messageProtocol = new window.QuadTVMessageProtocol();
+    this.iframes = []; // Store iframe references for postMessage communication
     this.init();
   }
 
   init() {
     this.setupMessageBusListeners();
+    this.setupMessageProtocol();
+  }
+
+  setupMessageProtocol() {
+    // Initialize postMessage handling
+    this.messageProtocol.init();
+
+    // Handle messages from iframes
+    this.messageProtocol.onMessage('IFRAME_READY', (payload, message) => {
+      console.log(`📨 Iframe ${payload.streamIndex} ready`);
+      this.onIframeReady(payload.streamIndex);
+    });
+
+    this.messageProtocol.onMessage('AUDIO_STATE_CHANGED', (payload, message) => {
+      console.log(`📨 Audio state changed in iframe ${payload.streamIndex}: ${payload.hasAudio}`);
+      this.onIframeAudioChanged(payload.streamIndex, payload.hasAudio);
+    });
+
+    this.messageProtocol.onMessage('USER_CLICKED_STREAM', (payload, message) => {
+      console.log(`📨 User clicked stream ${payload.streamIndex}`);
+      this.setActiveAudioStream(payload.streamIndex);
+    });
+
+    this.messageProtocol.onMessage('VIDEO_FOUND', (payload, message) => {
+      console.log(`📨 Video element found in iframe ${payload.streamIndex}`);
+      this.onIframeVideoFound(payload.streamIndex);
+    });
+
+    this.messageProtocol.onMessage('VIDEO_LOST', (payload, message) => {
+      console.log(`📨 Video element lost in iframe ${payload.streamIndex}`);
+      this.onIframeVideoLost(payload.streamIndex);
+    });
+
+    console.log('📨 UIManager: MessageProtocol setup complete');
   }
 
   setupMessageBusListeners() {
@@ -321,6 +357,15 @@ class UIManager {
     iframe.src = 'https://tv.youtube.com';
     iframe.allow = 'autoplay; fullscreen';
     iframe.setAttribute('loading', 'lazy');
+    iframe.dataset.streamIndex = index;
+
+    // Store iframe reference for postMessage communication
+    this.iframes[index] = iframe;
+
+    // Setup iframe load event for content script injection
+    iframe.addEventListener('load', () => {
+      this.onIframeLoaded(iframe, index);
+    });
 
     // Create stream controls
     const controls = this.createStreamControls(index);
@@ -377,17 +422,22 @@ class UIManager {
     }
   }
 
-  setActiveAudioStream(index) {
-    // Remove active class from all streams
-    const streams = document.querySelectorAll('.quadtv-stream');
-    streams.forEach(stream => stream.classList.remove('quadtv-audio-active'));
+  async setActiveAudioStream(index) {
+    const previousActiveStream = this.activeAudioStream;
 
-    // Add active class to selected stream
-    if (streams[index]) {
-      streams[index].classList.add('quadtv-audio-active');
-      this.activeAudioStream = index;
-      console.log(`🔊 Audio switched to stream ${index}`);
+    // Update internal state
+    this.activeAudioStream = index;
+
+    // Update visual indicators
+    this.updateAudioIndicators();
+
+    // Send audio state updates to all iframes
+    for (let i = 0; i < this.iframes.length; i++) {
+      const hasAudio = (i === index);
+      await this.sendAudioStateToIframe(i, hasAudio);
     }
+
+    console.log(`🔊 Audio switched from stream ${previousActiveStream} to stream ${index}`);
   }
 
   focusStream(index) {
@@ -405,6 +455,100 @@ class UIManager {
       '2-vertical': 2
     };
     return counts[layout] || 4;
+  }
+
+  // QTV-025: PostMessage Infrastructure Methods
+
+  onIframeLoaded(iframe, index) {
+    console.log(`📺 Iframe ${index} loaded, checking readiness...`);
+
+    // Give iframe time to initialize
+    setTimeout(() => {
+      this.checkIframeReadiness(iframe, index);
+    }, 1000);
+  }
+
+  async checkIframeReadiness(iframe, index) {
+    try {
+      // Send readiness check to iframe
+      await this.messageProtocol.sendToIframe(
+        iframe,
+        'IFRAME_READY_CHECK',
+        { streamIndex: index },
+        false
+      );
+      console.log(`📨 Sent readiness check to iframe ${index}`);
+    } catch (error) {
+      console.warn(`Failed to check readiness of iframe ${index}:`, error);
+      // Retry after delay
+      setTimeout(() => {
+        this.checkIframeReadiness(iframe, index);
+      }, 2000);
+    }
+  }
+
+  onIframeReady(streamIndex) {
+    console.log(`✅ Iframe ${streamIndex} is ready for communication`);
+
+    // Send initial audio state
+    const hasAudio = this.activeAudioStream === streamIndex;
+    this.sendAudioStateToIframe(streamIndex, hasAudio);
+  }
+
+  onIframeAudioChanged(streamIndex, hasAudio) {
+    console.log(`🔊 Iframe ${streamIndex} audio state: ${hasAudio}`);
+
+    // Update visual indicators
+    this.updateAudioIndicators();
+  }
+
+  onIframeVideoFound(streamIndex) {
+    console.log(`📺 Video element available in iframe ${streamIndex}`);
+
+    // Remove loading state if present
+    const stream = document.querySelector(`[data-stream-index="${streamIndex}"]`);
+    if (stream) {
+      stream.classList.remove('loading');
+    }
+  }
+
+  onIframeVideoLost(streamIndex) {
+    console.log(`⚠️ Video element lost in iframe ${streamIndex}`);
+
+    // Add loading state
+    const stream = document.querySelector(`[data-stream-index="${streamIndex}"]`);
+    if (stream) {
+      stream.classList.add('loading');
+    }
+  }
+
+  async sendAudioStateToIframe(streamIndex, hasAudio) {
+    const iframe = this.iframes[streamIndex];
+    if (!iframe) {
+      console.warn(`No iframe reference for stream ${streamIndex}`);
+      return;
+    }
+
+    try {
+      await this.messageProtocol.sendToIframe(
+        iframe,
+        'SET_AUDIO_STATE',
+        { streamIndex, hasAudio },
+        false
+      );
+      console.log(`📨 Sent audio state ${hasAudio} to iframe ${streamIndex}`);
+    } catch (error) {
+      console.error(`Failed to send audio state to iframe ${streamIndex}:`, error);
+    }
+  }
+
+  updateAudioIndicators() {
+    // Update visual indicators based on current audio state
+    const streams = document.querySelectorAll('.quadtv-stream');
+    streams.forEach((stream, index) => {
+      const isActive = this.activeAudioStream === index;
+      stream.classList.toggle('quadtv-audio-active', isActive);
+    });
   }
 
   setLayout(layout) {

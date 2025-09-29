@@ -94,13 +94,14 @@
 ### Sprint 4: Multiple Layouts
 **Goal**: Support different grid arrangements
 
-- [x] **QTV-009**: Layout engine implementation *(CODE COMPLETE - NEEDS TESTING)*
-  - 🚧 Test: Can switch between 2x2, 1+3, 2-vertical layouts (needs `windows` permission)
+- [x] **QTV-009**: Layout engine implementation *(COMPLETED - IFRAME APPROACH)*
+  - ✅ Test: Can switch between 2x2, 1+3, 2-vertical layouts with visual grid
   - ✅ Test: Streams maintain content during layout changes
-  - ✅ Test: Layout coordination works across tabs
-  - ✅ Implementation: Browser window positioning system complete
+  - ✅ Test: Layout coordination works across iframe grid
+  - ✅ Implementation: CSS Grid-based visual layout system
   - ✅ Implementation: Layout messaging between popup and background
-  - ✅ Implementation: Tab positioning calculations for all layouts
+  - ✅ Implementation: Dynamic stream show/hide based on layout
+  - ⚠️ Known Issue: Audio control broken due to iframe cross-origin restrictions
 
 - [ ] **QTV-010**: Popup layout selector
   - Test: Popup shows visual layout previews
@@ -125,6 +126,45 @@
   - Test: Can navigate YouTube TV browse pages in iframes
   - Test: Channel switching works with YouTube TV navigation
   - Test: Handles YouTube TV authentication correctly
+
+## Epic 2.5: Hybrid Audio Coordination (QTV-025 to QTV-028)
+**Goal**: Restore audio control in iframe-based visual grid
+**Architecture Decision**: [ADR-003: Hybrid Iframe-PostMessage Audio Coordination](docs/adr/003-hybrid-iframe-audio-coordination.md)
+
+### Sprint 4.5: PostMessage Audio Infrastructure
+**Goal**: Implement audio coordination between parent and iframe streams
+
+- [ ] **QTV-025**: PostMessage infrastructure *(IN PROGRESS)*
+  - Test: Parent can send messages to all iframes
+  - Test: Iframes can send messages back to parent
+  - Test: Message protocol handles audio state changes
+  - Test: Error handling for failed message delivery
+  - Implementation: Standardized message types and payload structure
+  - Implementation: Message routing and validation
+
+- [ ] **QTV-026**: Content script injection into iframes
+  - Test: Content scripts successfully inject into YouTube TV iframes
+  - Test: Injected scripts can access video elements
+  - Test: Cross-origin iframe security doesn't block injection
+  - Test: Fallback handling when injection fails
+  - Implementation: Dynamic script injection via executeScript
+  - Implementation: Iframe readiness detection
+
+- [ ] **QTV-027**: Audio coordination protocol
+  - Test: Only one iframe has unmuted audio at a time
+  - Test: Clicking stream switches audio correctly
+  - Test: Audio state persists during layout changes
+  - Test: Visual indicators reflect actual audio state
+  - Implementation: Centralized audio state management
+  - Implementation: Iframe audio control delegation
+
+- [ ] **QTV-028**: Visual feedback and error handling
+  - Test: Loading states during iframe initialization
+  - Test: Error messages when audio coordination fails
+  - Test: Graceful degradation to visual-only mode
+  - Test: User feedback for iframe communication issues
+  - Implementation: Robust error boundaries
+  - Implementation: User-friendly error messaging
 
 ## Epic 3: Presets & Power User Features (UXR-202)
 

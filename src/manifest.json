@@ -23,6 +23,7 @@
         "shared/messageBus.js",
         "shared/layoutEngine.js",
         "shared/storageManager.js",
+        "shared/messageProtocol.js",
         "content/uiManager.js",
         "content/streamManager.js",
         "content/contentScript.js"
