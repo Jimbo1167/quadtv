@@ -334,6 +334,10 @@ class BackgroundController {
         sendResponse({ success: true });
         break;
 
+      case 'INJECT_IFRAME_SCRIPT':
+        await this.injectIframeScript(message, sender, sendResponse);
+        break;
+
       default:
         sendResponse({ success: false, error: 'Unknown message type' });
     }
@@ -450,6 +454,70 @@ class BackgroundController {
 
     } catch (error) {
       console.error('❌ Layout: Failed to apply layout:', error);
+    }
+  }
+
+  // QTV-026: Iframe Content Script Injection
+  async injectIframeScript(message, sender, sendResponse) {
+    try {
+      console.log(`📺 Background: Injecting iframe script for stream ${message.streamIndex}`);
+
+      // Since we can't directly inject into cross-origin iframes,
+      // we'll try to find a YouTube TV tab that matches the iframe source
+      const youtubeTVTabs = await browser.tabs.query({
+        url: '*://tv.youtube.com/*'
+      });
+
+      if (youtubeTVTabs.length === 0) {
+        throw new Error('No YouTube TV tabs found for script injection');
+      }
+
+      // Load the message protocol and iframe script content
+      const scriptFiles = [
+        '/src/shared/messageProtocol.js',
+        '/src/content/iframeContentScript.js'
+      ];
+
+      // Try to inject into all YouTube TV tabs
+      // (the correct iframe will pick up the script)
+      let injectionCount = 0;
+      for (const tab of youtubeTVTabs) {
+        try {
+          // Check if tab is accessible
+          await browser.tabs.get(tab.id);
+
+          // Inject scripts
+          for (const file of scriptFiles) {
+            await browser.tabs.executeScript(tab.id, {
+              file: file,
+              allFrames: true // This includes iframes
+            });
+          }
+
+          injectionCount++;
+          console.log(`📺 Scripts injected into tab ${tab.id}`);
+
+        } catch (tabError) {
+          console.log(`📺 Could not inject into tab ${tab.id}:`, tabError.message);
+        }
+      }
+
+      if (injectionCount > 0) {
+        sendResponse({
+          success: true,
+          injectedTabs: injectionCount,
+          message: `Scripts injected into ${injectionCount} YouTube TV tabs`
+        });
+      } else {
+        throw new Error('Failed to inject scripts into any YouTube TV tabs');
+      }
+
+    } catch (error) {
+      console.error('❌ Background: Iframe script injection failed:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
     }
   }
 

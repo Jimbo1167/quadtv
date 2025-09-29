@@ -459,13 +459,129 @@ class UIManager {
 
   // QTV-025: PostMessage Infrastructure Methods
 
-  onIframeLoaded(iframe, index) {
-    console.log(`📺 Iframe ${index} loaded, checking readiness...`);
+  async onIframeLoaded(iframe, index) {
+    console.log(`📺 Iframe ${index} loaded, injecting content script...`);
 
-    // Give iframe time to initialize
-    setTimeout(() => {
-      this.checkIframeReadiness(iframe, index);
-    }, 1000);
+    // Give iframe time to initialize YouTube TV
+    setTimeout(async () => {
+      await this.injectContentScript(iframe, index);
+    }, 2000);
+  }
+
+  async injectContentScript(iframe, index) {
+    try {
+      console.log(`📺 Injecting content script into iframe ${index}...`);
+
+      // Request content script injection via background script
+      const response = await browser.runtime.sendMessage({
+        type: 'INJECT_IFRAME_SCRIPT',
+        iframeSrc: iframe.src,
+        streamIndex: index
+      });
+
+      if (response?.success) {
+        console.log(`✅ Content script injected into iframe ${index}`);
+
+        // Now check readiness
+        setTimeout(() => {
+          this.checkIframeReadiness(iframe, index);
+        }, 1000);
+      } else {
+        console.warn(`❌ Failed to inject content script into iframe ${index}:`, response?.error);
+
+        // Fallback: try direct postMessage injection
+        this.fallbackScriptInjection(iframe, index);
+      }
+    } catch (error) {
+      console.error(`❌ Error injecting content script into iframe ${index}:`, error);
+
+      // Fallback approach
+      this.fallbackScriptInjection(iframe, index);
+    }
+  }
+
+  fallbackScriptInjection(iframe, index) {
+    console.log(`📺 Attempting fallback script injection for iframe ${index}...`);
+
+    // Try to inject script content directly via postMessage
+    const scriptContent = this.getIframeScriptContent();
+
+    try {
+      iframe.contentWindow.postMessage({
+        type: 'QUADTV_INJECT_SCRIPT',
+        scriptContent: scriptContent,
+        streamIndex: index
+      }, 'https://tv.youtube.com');
+
+      console.log(`📨 Sent script injection message to iframe ${index}`);
+
+      // Check readiness after injection
+      setTimeout(() => {
+        this.checkIframeReadiness(iframe, index);
+      }, 1500);
+    } catch (error) {
+      console.error(`❌ Fallback injection failed for iframe ${index}:`, error);
+    }
+  }
+
+  getIframeScriptContent() {
+    // Return the iframe content script as a string for injection
+    // This is a simplified version for fallback
+    return `
+      if (!window.quadTVIframeManager && window.QuadTVMessageProtocol) {
+        console.log('📺 QuadTV: Fallback script injection...');
+
+        // Basic iframe management
+        const manager = {
+          messageProtocol: new window.QuadTVMessageProtocol(),
+          streamIndex: null,
+          hasAudio: false,
+
+          init() {
+            this.messageProtocol.init();
+            this.setupHandlers();
+            this.notifyReady();
+          },
+
+          setupHandlers() {
+            this.messageProtocol.onMessage('IFRAME_READY_CHECK', (payload) => {
+              this.streamIndex = payload.streamIndex;
+              this.notifyReady();
+            });
+
+            this.messageProtocol.onMessage('SET_AUDIO_STATE', (payload) => {
+              this.setAudioState(payload.hasAudio);
+            });
+          },
+
+          setAudioState(hasAudio) {
+            const video = document.querySelector('video');
+            if (video) {
+              video.muted = !hasAudio;
+              this.hasAudio = hasAudio;
+              this.notifyAudioChanged();
+            }
+          },
+
+          notifyReady() {
+            this.messageProtocol.sendToParent('IFRAME_READY', {
+              streamIndex: this.streamIndex,
+              hasVideo: !!document.querySelector('video')
+            });
+          },
+
+          notifyAudioChanged() {
+            this.messageProtocol.sendToParent('AUDIO_STATE_CHANGED', {
+              streamIndex: this.streamIndex,
+              hasAudio: this.hasAudio
+            });
+          }
+        };
+
+        manager.init();
+        window.quadTVIframeManager = manager;
+      }
+    `;
   }
 
   async checkIframeReadiness(iframe, index) {
