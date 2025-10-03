@@ -148,6 +148,17 @@
   grid-template-rows: 1fr;
 }
 
+/* Hide extra streams for 2-vertical layout */
+.quadtv-grid-container[data-layout="2-vertical"] .quadtv-stream:nth-child(n+3) {
+  display: none !important;
+}
+
+/* Show only 2 streams for 2-vertical */
+.quadtv-grid-container[data-layout="2-vertical"] .quadtv-stream:nth-child(1),
+.quadtv-grid-container[data-layout="2-vertical"] .quadtv-stream:nth-child(2) {
+  display: block !important;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .quadtv-grid-container {

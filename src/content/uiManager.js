@@ -725,6 +725,7 @@ class UIManager {
 
     // Set layout data attribute for CSS styling
     gridContainer.setAttribute('data-layout', layout);
+    console.log(`📐 UI: Set data-layout="${layout}" on grid container`);
 
     // Update grid CSS based on layout
     const layoutStyles = {
@@ -760,8 +761,10 @@ class UIManager {
     allStreams.forEach((stream, index) => {
       if (index < requiredStreams) {
         stream.style.display = 'block';
+        console.log(`📐 UI: Showing stream ${index}`);
       } else {
         stream.style.display = 'none';
+        console.log(`📐 UI: Hiding stream ${index}`);
       }
     });
 
