@@ -38,10 +38,19 @@ const IframeContentManager = require('../../src/content/iframeContentScript.js')
 describe('QTV-026: Iframe Content Script', () => {
   let manager;
   let mockVideo;
+  let instances = []; // Track all instances for cleanup
+
+  // Helper to create and track manager instances
+  const createManager = () => {
+    const instance = new IframeContentManager();
+    instances.push(instance);
+    return instance;
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    instances = [];
 
     mockVideo = {
       muted: false,
@@ -72,16 +81,24 @@ describe('QTV-026: Iframe Content Script', () => {
   });
 
   afterEach(() => {
+    // Clean up all instances
+    instances.forEach(instance => {
+      if (instance && typeof instance.destroy === 'function') {
+        instance.destroy();
+      }
+    });
     if (manager) {
       manager.destroy();
     }
+    // Clear all timers to prevent Jest open handles
+    jest.clearAllTimers();
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
   });
 
   describe('Initialization', () => {
     test('should initialize in iframe context', () => {
-      manager = new IframeContentManager();
+      manager = createManager();
 
       expect(manager.streamIndex).toBeNull();
       expect(manager.hasAudio).toBe(false);
@@ -89,7 +106,7 @@ describe('QTV-026: Iframe Content Script', () => {
     });
 
     test('should setup message handlers', () => {
-      manager = new IframeContentManager();
+      manager = createManager();
 
       expect(manager.messageProtocol).toBeDefined();
       expect(manager.messageProtocol.handlers.has('IFRAME_READY_CHECK')).toBe(true);
@@ -99,7 +116,7 @@ describe('QTV-026: Iframe Content Script', () => {
 
   describe('Video Detection', () => {
     test('should detect video element on initialization', () => {
-      manager = new IframeContentManager();
+      manager = createManager();
       manager.detectVideoElement();
 
       expect(manager.videoElement).toBe(mockVideo);
@@ -110,7 +127,7 @@ describe('QTV-026: Iframe Content Script', () => {
       global.document.querySelector.mockReturnValue(null);
       global.document.querySelectorAll.mockReturnValue([]);
 
-      manager = new IframeContentManager();
+      manager = createManager();
       manager.detectVideoElement();
 
       expect(manager.videoElement).toBeNull();
@@ -125,7 +142,7 @@ describe('QTV-026: Iframe Content Script', () => {
 
       global.document.querySelectorAll.mockReturnValue([emptyVideo, mockVideo]);
 
-      manager = new IframeContentManager();
+      manager = createManager();
       manager.detectVideoElement();
 
       expect(manager.videoElement).toBe(mockVideo);
@@ -134,7 +151,7 @@ describe('QTV-026: Iframe Content Script', () => {
 
   describe('Message Handling', () => {
     beforeEach(() => {
-      manager = new IframeContentManager();
+      manager = createManager();
     });
 
     test('should handle IFRAME_READY_CHECK message', () => {
@@ -184,7 +201,7 @@ describe('QTV-026: Iframe Content Script', () => {
 
   describe('Audio Control', () => {
     beforeEach(() => {
-      manager = new IframeContentManager();
+      manager = createManager();
       manager.videoElement = mockVideo;
     });
 
@@ -227,7 +244,7 @@ describe('QTV-026: Iframe Content Script', () => {
 
   describe('Volume Change Detection', () => {
     beforeEach(() => {
-      manager = new IframeContentManager();
+      manager = createManager();
       manager.videoElement = mockVideo;
       manager.hasAudio = true;
     });
@@ -258,7 +275,7 @@ describe('QTV-026: Iframe Content Script', () => {
 
   describe('Parent Communication', () => {
     beforeEach(() => {
-      manager = new IframeContentManager();
+      manager = createManager();
       manager.streamIndex = 0;
     });
 
@@ -307,7 +324,7 @@ describe('QTV-026: Iframe Content Script', () => {
 
   describe('Error Handling', () => {
     beforeEach(() => {
-      manager = new IframeContentManager();
+      manager = createManager();
       manager.streamIndex = 0;
     });
 
@@ -338,7 +355,7 @@ describe('QTV-026: Iframe Content Script', () => {
 
   describe('Cleanup', () => {
     test('should cleanup resources on destroy', () => {
-      manager = new IframeContentManager();
+      manager = createManager();
       manager.videoCheckInterval = setInterval(() => {}, 1000);
 
       const clearIntervalSpy = jest.spyOn(global, 'clearInterval');

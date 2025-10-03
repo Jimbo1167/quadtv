@@ -49,6 +49,7 @@ describe('BackgroundController - QTV-001 Tests', () => {
     global.BackgroundController = class {
       constructor() {
         this.activeTabStates = new Map();
+        this.currentLayout = '2x2'; // Default layout
         this.init();
       }
 
@@ -154,7 +155,7 @@ describe('BackgroundController - QTV-001 Tests', () => {
         }
       }
 
-      handleMessage(message, sender, sendResponse) {
+      async handleMessage(message, sender, sendResponse) {
         switch (message.type) {
           case 'GET_TAB_STATE':
             const tabId = sender.tab?.id;
@@ -166,6 +167,16 @@ describe('BackgroundController - QTV-001 Tests', () => {
             if (sender.tab?.id) {
               this.activeTabStates.set(sender.tab.id, message.isActive);
             }
+            break;
+
+          case 'TOGGLE_QUADTV':
+            // Set layout if provided before toggling
+            if (message.layout) {
+              this.currentLayout = message.layout;
+              console.log(`📐 Background: Layout set to ${message.layout} before activation`);
+            }
+            await this.toggleQuadTV(message.tab || sender.tab);
+            sendResponse({ success: true });
             break;
         }
       }
@@ -399,6 +410,87 @@ describe('BackgroundController - QTV-001 Tests', () => {
 
       // Should not crash, and tab states should remain unchanged
       expect(backgroundController.activeTabStates.size).toBe(0);
+    });
+  });
+
+  describe('Layout Parameter Passing', () => {
+    test('should initialize with default 2x2 layout', () => {
+      expect(backgroundController.currentLayout).toBe('2x2');
+    });
+
+    test('should set layout when TOGGLE_QUADTV message includes layout parameter', async () => {
+      const message = {
+        type: 'TOGGLE_QUADTV',
+        layout: '1+2',
+        tab: mockTab
+      };
+      const sendResponse = jest.fn();
+      mockTabs.sendMessage.mockResolvedValue();
+
+      await backgroundController.handleMessage(message, { tab: mockTab }, sendResponse);
+
+      expect(backgroundController.currentLayout).toBe('1+2');
+      expect(sendResponse).toHaveBeenCalledWith({ success: true });
+    });
+
+    test('should keep current layout when TOGGLE_QUADTV message has no layout parameter', async () => {
+      backgroundController.currentLayout = '2-vertical';
+
+      const message = {
+        type: 'TOGGLE_QUADTV',
+        tab: mockTab
+      };
+      const sendResponse = jest.fn();
+      mockTabs.sendMessage.mockResolvedValue();
+
+      await backgroundController.handleMessage(message, { tab: mockTab }, sendResponse);
+
+      expect(backgroundController.currentLayout).toBe('2-vertical');
+    });
+
+    test('should handle all three layouts correctly', async () => {
+      const sendResponse = jest.fn();
+      mockTabs.sendMessage.mockResolvedValue();
+
+      // Test 2x2
+      await backgroundController.handleMessage({
+        type: 'TOGGLE_QUADTV',
+        layout: '2x2',
+        tab: mockTab
+      }, { tab: mockTab }, sendResponse);
+      expect(backgroundController.currentLayout).toBe('2x2');
+
+      // Test 1+2
+      await backgroundController.handleMessage({
+        type: 'TOGGLE_QUADTV',
+        layout: '1+2',
+        tab: mockTab
+      }, { tab: mockTab }, sendResponse);
+      expect(backgroundController.currentLayout).toBe('1+2');
+
+      // Test 2-vertical
+      await backgroundController.handleMessage({
+        type: 'TOGGLE_QUADTV',
+        layout: '2-vertical',
+        tab: mockTab
+      }, { tab: mockTab }, sendResponse);
+      expect(backgroundController.currentLayout).toBe('2-vertical');
+    });
+
+    test('should log layout change when layout parameter provided', async () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const message = {
+        type: 'TOGGLE_QUADTV',
+        layout: '1+2',
+        tab: mockTab
+      };
+      const sendResponse = jest.fn();
+      mockTabs.sendMessage.mockResolvedValue();
+
+      await backgroundController.handleMessage(message, { tab: mockTab }, sendResponse);
+
+      expect(consoleSpy).toHaveBeenCalledWith('📐 Background: Layout set to 1+2 before activation');
+      consoleSpy.mockRestore();
     });
   });
 

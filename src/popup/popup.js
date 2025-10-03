@@ -139,9 +139,17 @@ class PopupManager {
 
       if (!tab) return;
 
-      await browser.tabs.sendMessage(tab.id, {
+      // Send activation message with current layout
+      const message = {
         type: this.isActive ? 'DEACTIVATE_QUADTV' : 'ACTIVATE_QUADTV'
-      });
+      };
+
+      // Include layout when activating
+      if (!this.isActive) {
+        message.layout = this.currentLayout;
+      }
+
+      await browser.tabs.sendMessage(tab.id, message);
 
       // Update status after a brief delay
       setTimeout(() => this.updateStatus(), 100);

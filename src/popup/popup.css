@@ -100,7 +100,7 @@ body {
   grid-template: repeat(2, 1fr) / repeat(2, 1fr);
 }
 
-.grid-1plus3 {
+.grid-1plus2 {
   grid-template: repeat(2, 1fr) / 2fr 1fr;
 }
 

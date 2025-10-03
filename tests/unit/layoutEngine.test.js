@@ -23,7 +23,7 @@ describe('LayoutEngine', () => {
   test('should have default layouts defined', () => {
     expect(layoutEngine.layouts).toBeDefined();
     expect(layoutEngine.layouts['2x2']).toBeDefined();
-    expect(layoutEngine.layouts['1+3']).toBeDefined();
+    expect(layoutEngine.layouts['1+2']).toBeDefined();
     expect(layoutEngine.layouts['2-vertical']).toBeDefined();
   });
 
@@ -33,9 +33,9 @@ describe('LayoutEngine', () => {
   });
 
   test('should return specific layout when requested', () => {
-    const layout = layoutEngine.getLayout('1+3');
-    expect(layout).toEqual(layoutEngine.layouts['1+3']);
-    expect(layout.name).toBe('1 Large + 3 Small');
+    const layout = layoutEngine.getLayout('1+2');
+    expect(layout).toEqual(layoutEngine.layouts['1+2']);
+    expect(layout.name).toBe('1 Large + 2 Small');
   });
 
   test('should return available layouts list', () => {
@@ -58,11 +58,11 @@ describe('LayoutEngine', () => {
     });
   });
 
-  test('should generate CSS for 1+3 layout', () => {
-    const css = layoutEngine.generateCSS('1+3');
+  test('should generate CSS for 1+2 layout', () => {
+    const css = layoutEngine.generateCSS('1+2');
 
     expect(css.container).toHaveProperty('display', 'grid');
-    expect(css.streams).toHaveLength(4);
+    expect(css.streams).toHaveLength(3);
     expect(css.streams[0].gridArea).toBe('1 / 1 / 3 / 2'); // Large stream
   });
 

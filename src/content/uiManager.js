@@ -3,9 +3,7 @@ class UIManager {
     this.isActive = false;
     this.currentLayout = '2x2';
     this.container = null;
-    this.streamTabs = new Map(); // Map<streamIndex, tabId>
-    this.activeAudioTab = null;
-    this.isControlTab = false;
+    this.activeAudioStream = 0; // Index of currently active audio stream
     this.messageBus = window.QuadTVMessageBus;
     this.layoutEngine = window.QuadTVLayoutEngine;
     this.messageProtocol = new window.QuadTVMessageProtocol();
@@ -55,31 +53,33 @@ class UIManager {
   setupMessageBusListeners() {
     this.messageBus.subscribe('QUADTV_ACTIVATED', (data) => this.onQuadTVActivated(data));
     this.messageBus.subscribe('QUADTV_DEACTIVATED', () => this.deactivate());
-    this.messageBus.subscribe('AUDIO_CHANGED', (data) => this.onAudioChanged(data));
-    this.messageBus.subscribe('SET_AUDIO_STATE', (data) => this.setAudioState(data));
     this.messageBus.subscribe('SET_LAYOUT', (data) => this.setLayout(data.layout));
-    this.messageBus.subscribe('LAYOUT_CHANGED', (data) => this.onLayoutChanged(data));
     this.messageBus.subscribe('HIGHLIGHT_STREAM', (data) => this.highlightStream(data.streamIndex));
     this.messageBus.subscribe('SHOW_CONTROLS', (data) => this.showControls(data.streamIndex));
     this.messageBus.subscribe('HIDE_CONTROLS', (data) => this.hideControls(data.streamIndex));
   }
 
   onQuadTVActivated(data) {
-    console.log('📺 Tab: QuadTV activated', data);
+    console.log('📺 QuadTV: Activating iframe grid', data);
 
-    // Store tab mapping and state
-    this.streamTabs = new Map(data.streamTabs);
-    this.activeAudioTab = data.activeAudioTab;
-    this.isControlTab = this.streamTabs.get(0) === this.getCurrentTabId();
+    // Set layout if provided
+    if (data.layout) {
+      this.currentLayout = data.layout;
+      console.log(`📐 UI: Layout set to ${data.layout}`);
+    }
 
-    this.activate();
+    // If already active, just update the layout
+    if (this.isActive) {
+      if (data.layout) {
+        console.log(`📐 UI: Already active, updating layout to ${data.layout}`);
+        this.setLayout(data.layout);
+      }
+    } else {
+      // First activation
+      this.activate();
+    }
   }
 
-  onAudioChanged(data) {
-    console.log('🔊 Tab: Audio changed', data);
-    this.activeAudioTab = data.activeAudioTab;
-    this.updateAudioIndicator();
-  }
 
   setAudioState(data) {
     console.log(`🔊 Tab: Setting audio ${data.hasAudio ? 'ON' : 'OFF'} (stream ${data.streamIndex})`);
@@ -455,7 +455,7 @@ class UIManager {
   getStreamCountForLayout(layout) {
     const counts = {
       '2x2': 4,
-      '1+3': 4,
+      '1+2': 3,
       '2-vertical': 2
     };
     return counts[layout] || 4;
@@ -638,10 +638,12 @@ class UIManager {
     if (window.QuadTVIframeBridge) {
       this.iframeBridge = new window.QuadTVIframeBridge();
 
-      // Give iframes time to load, then register them
+      // Give iframes time to load, then register only visible iframes
       setTimeout(() => {
-        console.log(`📺 Registering ${this.iframes.length} iframes with bridge`);
-        this.iframeBridge.registerIframes(this.iframes);
+        const streamCount = this.getStreamCountForLayout(this.currentLayout);
+        const visibleIframes = this.iframes.slice(0, streamCount);
+        console.log(`📺 Registering ${visibleIframes.length} iframes with bridge for layout ${this.currentLayout}`);
+        this.iframeBridge.registerIframes(visibleIframes);
       }, 2000);
 
       console.log('📺 IframeBridge initialized');
@@ -734,7 +736,7 @@ class UIManager {
         'grid-template-rows': '1fr 1fr',
         'gap': '8px'
       },
-      '1+3': {
+      '1+2': {
         'grid-template-columns': '2fr 1fr',
         'grid-template-rows': '1fr 1fr',
         'gap': '8px'

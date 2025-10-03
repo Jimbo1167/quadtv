@@ -11,14 +11,13 @@ class LayoutEngine {
           { position: 4, gridArea: '2 / 2 / 3 / 3' }
         ]
       },
-      '1+3': {
-        name: '1 Large + 3 Small',
+      '1+2': {
+        name: '1 Large + 2 Small',
         grid: 'repeat(2, 1fr) / repeat(2, 1fr)',
         streams: [
           { position: 1, gridArea: '1 / 1 / 3 / 2' },
           { position: 2, gridArea: '1 / 2 / 2 / 3' },
-          { position: 3, gridArea: '2 / 2 / 3 / 3' },
-          { position: 4, gridArea: '3 / 2 / 4 / 3' }
+          { position: 3, gridArea: '2 / 2 / 3 / 3' }
         ]
       },
       '2-vertical': {

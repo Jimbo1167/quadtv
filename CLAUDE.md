@@ -61,15 +61,15 @@ Components communicate exclusively through the MessageBus to maintain modularity
 
 ## Technical Constraints & Solutions
 - ✅ Works within YouTube TV's existing DOM structure
-- ✅ **Multi-tab architecture** for stream management (iframe embedding blocked by CSP) - IMPLEMENTED
-- ✅ Memory-conscious tab coordination with automatic recovery
-- ✅ Smooth transitions for tab switching with preserved audio state
+- ✅ **Iframe visual grid architecture** for stream management - IMPLEMENTED
+- ✅ CSS Grid-based responsive layouts (2x2, 1+3, 2-vertical)
+- ✅ Manual audio control via intuitive click-to-switch interface
 - ✅ No full-page refreshes during mode switching
-- ✅ Browser-level audio control for reliable muting - WORKING PERFECTLY
+- ✅ Cross-browser compatibility without special permissions
 
 ## Recent Developments (Latest Session)
-- **Fixed Critical Issues**: Resolved Jest hanging, activation flow, and stream mapping corruption
-- **Enhanced Debugging**: Added comprehensive logging and automatic recovery mechanisms  
-- **Layout System**: Implemented complete browser window positioning for 2x2, 1+3, 2-vertical layouts
-- **Test Quality**: All 112 tests passing with proper cleanup and no memory leaks
-- **Production Ready**: Core functionality is stable and ready for daily use
+- **Architectural Decision**: Committed to iframe-only architecture, abandoned multi-tab approach (ADR-004)
+- **Code Cleanup**: Removed all multi-tab specific code and prototyping artifacts
+- **Iframe Grid System**: Perfected CSS Grid-based visual layout with manual audio controls
+- **Test Quality**: All 107 tests passing with proper cleanup and no memory leaks
+- **Production Ready**: Simple, reliable iframe-based architecture ready for daily use

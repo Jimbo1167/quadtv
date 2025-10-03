@@ -10,6 +10,7 @@ class IframeContentManager {
     this.videoElement = null;
     this.messageProtocol = new window.QuadTVMessageProtocol();
     this.videoCheckInterval = null;
+    this.setupTimeout = null;
     this.isReady = false;
 
     this.init();
@@ -37,7 +38,7 @@ class IframeContentManager {
     this.startVideoDetection();
 
     // Wait a bit for everything to initialize
-    setTimeout(async () => {
+    this.setupTimeout = setTimeout(async () => {
       await this.notifyReady();
     }, 500);
   }
@@ -282,6 +283,11 @@ class IframeContentManager {
       this.videoCheckInterval = null;
     }
 
+    if (this.setupTimeout) {
+      clearTimeout(this.setupTimeout);
+      this.setupTimeout = null;
+    }
+
     this.cleanupVideoListeners();
 
     if (this.messageProtocol) {
@@ -308,27 +314,29 @@ window.addEventListener('message', (event) => {
   }
 });
 
-// Initialize when script loads
-if (typeof window !== 'undefined' && window.QuadTVMessageProtocol) {
-  // Only initialize if we're in an iframe context and have the message protocol
-  if (window.self !== window.top) {
-    console.log('📺 Initializing QuadTV iframe content script...');
-    window.quadTVIframeManager = new IframeContentManager();
-  }
-} else {
-  console.log('📺 QuadTV MessageProtocol not available, deferring iframe content script initialization');
-
-  // Wait for the protocol to be available
-  const checkProtocol = () => {
-    if (window.QuadTVMessageProtocol && window.self !== window.top) {
-      console.log('📺 QuadTV MessageProtocol now available, initializing...');
+// Initialize when script loads (but not during testing)
+if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+  if (typeof window !== 'undefined' && window.QuadTVMessageProtocol) {
+    // Only initialize if we're in an iframe context and have the message protocol
+    if (window.self !== window.top) {
+      console.log('📺 Initializing QuadTV iframe content script...');
       window.quadTVIframeManager = new IframeContentManager();
-    } else {
-      setTimeout(checkProtocol, 100);
     }
-  };
+  } else if (typeof window !== 'undefined') {
+    console.log('📺 QuadTV MessageProtocol not available, deferring iframe content script initialization');
 
-  setTimeout(checkProtocol, 100);
+    // Wait for the protocol to be available
+    const checkProtocol = () => {
+      if (window.QuadTVMessageProtocol && window.self !== window.top) {
+        console.log('📺 QuadTV MessageProtocol now available, initializing...');
+        window.quadTVIframeManager = new IframeContentManager();
+      } else {
+        setTimeout(checkProtocol, 100);
+      }
+    };
+
+    setTimeout(checkProtocol, 100);
+  }
 }
 
 // Export for testing

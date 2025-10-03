@@ -1,12 +1,12 @@
 # QuadTV
 
-A Firefox extension that enables multi-stream viewing for YouTube TV, transforming the web interface into a customizable multi-view layout with intuitive audio and stream management controls.
+A Firefox extension that enables multi-stream viewing for YouTube TV, transforming the web interface into a visual grid of iframe streams with manual audio control and customizable layouts.
 
 ## Features
 
 - **One-Click Activation**: Transform YouTube TV into multi-view mode instantly
 - **Multiple Layouts**: Choose from 2x2 grid, 1+3 layout, or 2-vertical arrangement
-- **Audio Switching**: Click any stream to make it the active audio source
+- **Manual Audio Control**: Click audio buttons (🔊) to switch between stream audio
 - **Focus Mode**: Maximize individual streams for detail viewing
 - **Layout Presets**: Save and load custom channel configurations
 - **Keyboard Shortcuts**: Quick toggle with Ctrl+Shift+Q
@@ -45,14 +45,14 @@ npm run lint
 
 ### Architecture
 
-The extension follows a modular, message-driven architecture:
+The extension follows a modular, iframe-based architecture:
 
-- **BackgroundController**: Handles browser events and toolbar interactions
-- **UIManager**: Controls DOM manipulation and visual elements
-- **StreamManager**: Manages stream state and audio switching
-- **LayoutEngine**: Provides layout definitions and CSS generation
+- **BackgroundController**: Handles browser events and toolbar interactions  
+- **UIManager**: Controls iframe grid creation and visual elements
+- **LayoutEngine**: Provides layout definitions and CSS Grid generation
 - **StorageManager**: Handles data persistence for settings and presets
 - **MessageBus**: Central communication hub between components
+- **IframeBridge**: Manages communication with YouTube TV iframes
 
 ### Testing
 
@@ -91,8 +91,9 @@ The extension will be available on the Firefox Add-ons store once released.
 1. Navigate to [YouTube TV](https://tv.youtube.com)
 2. Click the QuadTV toolbar icon or press Ctrl+Shift+Q
 3. Choose your preferred layout from the popup
-4. Click streams to switch audio, hover for controls
-5. Save layouts as presets for quick access
+4. Navigate each iframe to different content manually
+5. Click 🔊 audio buttons to switch between stream audio
+6. Hover over streams for additional controls
 
 ## License
 

@@ -394,7 +394,7 @@ describe('QuadTV Extension Integration - QTV-001 Critical Paths', () => {
   test('should handle layout switching flow', async () => {
     const layoutChangeMessage = {
       type: 'SET_LAYOUT',
-      layout: '1+3'
+      layout: '1+2'
     };
 
     mockBrowser.tabs.sendMessage.mockResolvedValue({ success: true });
