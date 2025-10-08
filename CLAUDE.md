@@ -6,31 +6,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 QuadTV is a Firefox browser extension that enables multi-stream viewing for YouTube TV. It transforms the YouTube TV web interface into a customizable multi-view layout where users can watch multiple channels simultaneously with intuitive audio and stream management controls.
 
-**Current Status**: Core multi-tab architecture is fully functional with working audio switching and layout coordination system implemented.
+**Current Status**: Core iframe-based architecture is fully functional with three working layouts (2x2, 1+2, 2-vertical). Audio control removed in favor of manual per-stream control.
 
 ## Architecture
 
 This project follows a modular, message-driven architecture with clear separation of concerns:
 
 ### Core Components
-- **[E-BG] BackgroundController**: Central nervous system handling browser events, toolbar clicks, keyboard shortcuts, and **multi-tab coordination**
-- **[E-UI] UIManager**: Controls overlay UI and visual indicators for the control tab
-- **[E-SM] StreamManager**: Manages **multi-tab state**, coordinates audio switching, and handles tab lifecycle
-- **[E-LE] LayoutEngine**: Provides layout definitions for tab arrangement and visual coordination
-- **[E-POP] PopupManager**: Handles toolbar popup UI, layout selection, and **tab status display**
+- **[E-BG] BackgroundController**: Handles browser events, toolbar clicks, and extension activation/deactivation
+- **[E-UI] UIManager**: Creates and manages the iframe grid overlay with dynamic layouts
+- **[E-LE] LayoutEngine**: Provides layout definitions (2x2, 1+2, 2-vertical) with stream positioning
+- **[E-POP] PopupManager**: Handles toolbar popup UI and layout selection
 - **[E-STORE] StorageManager**: Handles data persistence for settings and presets
-- **[E-BUS] MessageBus**: Central communication hub enabling loose coupling between components **across multiple tabs**
+- **[E-BUS] MessageBus**: Central communication hub enabling loose coupling between components
+- **[E-CS] ContentScript**: Bridges communication between background and UI manager
 
 ### Communication Pattern
 Components communicate exclusively through the MessageBus to maintain modularity and testability. No direct dependencies between components.
 
 ## Key Features Status
 - ✅ One-click activation from toolbar icon (WORKING)
-- 🚧 Multiple layout options (2x2, 1+3, 2-Vertical) - Code complete, needs testing
-- ✅ Audio switching with visual indicators (WORKING)  
+- ✅ Multiple layout options (2x2, 1+2, 2-Vertical) - FULLY WORKING
+- ✅ Keyboard shortcuts (Esc to exit, Ctrl/Cmd+Space to cycle layouts, ? for help)
+- ✅ Onboarding tutorial for first-time users
+- ❌ Audio switching - REMOVED (users control audio manually per-stream)
+- 📋 Resizable grid dividers (PLANNED - see docs/resizable-grid-feature.md)
 - 📋 Focus mode for maximizing individual streams (TODO)
 - 📋 Layout presets with save/load functionality (TODO)
-- 📋 Quick channel swapping within streams (TODO)
 
 ## Development Guidelines
 
@@ -62,14 +64,32 @@ Components communicate exclusively through the MessageBus to maintain modularity
 ## Technical Constraints & Solutions
 - ✅ Works within YouTube TV's existing DOM structure
 - ✅ **Iframe visual grid architecture** for stream management - IMPLEMENTED
-- ✅ CSS Grid-based responsive layouts (2x2, 1+3, 2-vertical)
-- ✅ Manual audio control via intuitive click-to-switch interface
+- ✅ CSS Grid-based responsive layouts (2x2, 1+2, 2-vertical)
+- ✅ No automated audio control due to cross-origin restrictions (users control per-stream)
 - ✅ No full-page refreshes during mode switching
 - ✅ Cross-browser compatibility without special permissions
 
-## Recent Developments (Latest Session)
-- **Architectural Decision**: Committed to iframe-only architecture, abandoned multi-tab approach (ADR-004)
-- **Code Cleanup**: Removed all multi-tab specific code and prototyping artifacts
-- **Iframe Grid System**: Perfected CSS Grid-based visual layout with manual audio controls
-- **Test Quality**: All 107 tests passing with proper cleanup and no memory leaks
-- **Production Ready**: Simple, reliable iframe-based architecture ready for daily use
+## Recent Developments (Latest Session - 2025-10-08)
+
+### Version 0.2.1 - Major Simplification
+- **Audio Control Removed**: Eliminated all cross-origin audio switching code (IframeBridge, MessageProtocol)
+  - Rationale: Cross-origin security prevents reliable iframe audio control
+  - Solution: Users manually control audio within each YouTube TV iframe
+  - Result: Cleaner codebase (1,200 lines → 352 lines in uiManager.js)
+
+- **Layout System Finalized**:
+  - Fixed 2-vertical layout only registering correct number of iframes
+  - Changed 1+3 to 1+2 (3 streams instead of 4) for better stream count variety
+  - Layouts: 2 streams (2-vertical), 3 streams (1+2), 4 streams (2x2)
+  - Layout selection flow now properly passes through popup → background → UI
+
+- **UI Polish**:
+  - Improved popup layout selection readability (white text on red background when selected)
+  - Simplified stream containers (removed audio indicators, kept stream numbers)
+  - Updated keyboard shortcuts and onboarding help
+
+### Next Feature - Resizable Grid Dividers
+- **Status**: Design phase complete
+- **Documentation**: See `docs/resizable-grid-feature.md`
+- **Goal**: Allow users to drag dividers between streams to customize sizing
+- **Implementation**: Phase 1 starting with 2x2 layout proof of concept
