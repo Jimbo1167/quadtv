@@ -231,6 +231,40 @@
   }
 }
 
+/* Resizable dividers */
+.quadtv-divider {
+  position: absolute;
+  background: rgba(102, 102, 102, 0.3);
+  transition: background 0.2s ease;
+  z-index: 1000;
+  user-select: none;
+}
+
+.quadtv-divider:hover {
+  background: rgba(255, 0, 0, 0.5);
+  box-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+}
+
+.quadtv-divider.dragging {
+  background: #ff0000;
+  box-shadow: 0 0 12px rgba(255, 0, 0, 0.8);
+  transition: none;
+}
+
+.quadtv-divider-vertical {
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  top: 0;
+}
+
+.quadtv-divider-horizontal {
+  width: 100%;
+  height: 8px;
+  cursor: row-resize;
+  left: 0;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .quadtv-grid-container {

@@ -6,12 +6,23 @@ class UIManager {
     this.messageBus = window.QuadTVMessageBus;
     this.layoutEngine = window.QuadTVLayoutEngine;
     this.iframes = []; // Store iframe references
+    this.dividers = []; // Store divider elements
+    this.isDragging = false;
+
+    // Grid ratios for each layout (fr units)
+    this.gridRatios = {
+      '2x2': { columns: [1, 1], rows: [1, 1] },
+      '1+2': { columns: [2, 1], rows: [1, 1] },
+      '2-vertical': { columns: [1, 1], rows: [1] }
+    };
+
     this.init();
   }
 
   init() {
     this.setupMessageBusListeners();
     this.setupKeyboardShortcuts();
+    this.loadGridRatios();
   }
 
   setupMessageBusListeners() {
@@ -130,6 +141,11 @@ class UIManager {
         <p>Watch multiple YouTube TV channels simultaneously</p>
         <p>Control audio individually within each stream</p>
         <p>Switch layouts to customize your viewing experience</p>
+
+        <h3>📏 Resizable Grid (2x2 layout):</h3>
+        <p><strong>Drag dividers</strong> to resize streams</p>
+        <p><strong>Double-click divider</strong> to reset to equal sizing</p>
+        <p>Your custom sizing is saved automatically</p>
       </div>
       <button id="quadtv-help-close" style="
         background: #ff0000;
@@ -340,6 +356,223 @@ class UIManager {
     });
 
     console.log(`📐 UI: Grid layout updated to ${layout} with ${requiredStreams} streams`);
+
+    // Update dividers for new layout
+    this.updateDividers(layout);
+  }
+
+  // ===== RESIZABLE DIVIDERS =====
+
+  createDividers(layout) {
+    // Remove existing dividers
+    this.removeDividers();
+
+    // Only create dividers for 2x2 layout in Phase 1
+    if (layout === '2x2') {
+      // Create vertical divider (between left and right columns)
+      const verticalDivider = this.createDivider('vertical', 0);
+      this.dividers.push(verticalDivider);
+      this.quadTVContainer.appendChild(verticalDivider);
+
+      // Create horizontal divider (between top and bottom rows)
+      const horizontalDivider = this.createDivider('horizontal', 0);
+      this.dividers.push(horizontalDivider);
+      this.quadTVContainer.appendChild(horizontalDivider);
+
+      // Position dividers based on current ratios
+      this.positionDividers();
+
+      console.log('📏 Created dividers for 2x2 layout');
+    }
+  }
+
+  createDivider(orientation, index) {
+    const divider = document.createElement('div');
+    divider.className = `quadtv-divider quadtv-divider-${orientation}`;
+    divider.dataset.orientation = orientation;
+    divider.dataset.index = index;
+
+    // Add drag event listeners
+    divider.addEventListener('mousedown', (e) => this.onDividerDragStart(e, divider));
+
+    // Double-click to reset
+    divider.addEventListener('dblclick', () => this.resetDivider(orientation));
+
+    return divider;
+  }
+
+  removeDividers() {
+    this.dividers.forEach(divider => divider.remove());
+    this.dividers = [];
+  }
+
+  updateDividers(layout) {
+    this.createDividers(layout);
+  }
+
+  positionDividers() {
+    const layout = this.currentLayout;
+    const ratios = this.gridRatios[layout];
+
+    if (!ratios) return;
+
+    // Position vertical divider (if exists)
+    const verticalDivider = this.dividers.find(d => d.dataset.orientation === 'vertical');
+    if (verticalDivider && ratios.columns) {
+      const totalColumns = ratios.columns.reduce((a, b) => a + b, 0);
+      const leftPercent = (ratios.columns[0] / totalColumns) * 100;
+      verticalDivider.style.left = `calc(${leftPercent}% - 4px)`;
+    }
+
+    // Position horizontal divider (if exists)
+    const horizontalDivider = this.dividers.find(d => d.dataset.orientation === 'horizontal');
+    if (horizontalDivider && ratios.rows) {
+      const totalRows = ratios.rows.reduce((a, b) => a + b, 0);
+      const topPercent = (ratios.rows[0] / totalRows) * 100;
+      horizontalDivider.style.top = `calc(${topPercent}% - 4px)`;
+    }
+  }
+
+  onDividerDragStart(e, divider) {
+    e.preventDefault();
+    this.isDragging = true;
+    this.dragOrientation = divider.dataset.orientation;
+    this.dragStartPos = this.dragOrientation === 'vertical' ? e.clientX : e.clientY;
+    this.dragStartRatios = JSON.parse(JSON.stringify(this.gridRatios[this.currentLayout]));
+
+    // Add dragging class for visual feedback
+    divider.classList.add('dragging');
+    this.currentDragDivider = divider;
+
+    // Bind event handlers
+    this.boundDividerDrag = (e) => this.onDividerDrag(e);
+    this.boundDividerDragEnd = (e) => this.onDividerDragEnd(e);
+
+    document.addEventListener('mousemove', this.boundDividerDrag);
+    document.addEventListener('mouseup', this.boundDividerDragEnd);
+
+    console.log(`📏 Started dragging ${this.dragOrientation} divider`);
+  }
+
+  onDividerDrag(e) {
+    if (!this.isDragging) return;
+
+    const currentPos = this.dragOrientation === 'vertical' ? e.clientX : e.clientY;
+    const delta = currentPos - this.dragStartPos;
+
+    // Convert pixel delta to ratio change
+    const containerSize = this.dragOrientation === 'vertical'
+      ? this.gridContainer.offsetWidth
+      : this.gridContainer.offsetHeight;
+
+    const ratioDelta = delta / containerSize;
+
+    // Update ratios with min/max constraints
+    this.updateGridRatios(ratioDelta);
+
+    // Apply new ratios to grid
+    this.applyGridRatios();
+
+    // Update divider positions
+    this.positionDividers();
+  }
+
+  onDividerDragEnd(e) {
+    if (!this.isDragging) return;
+
+    this.isDragging = false;
+
+    // Remove dragging class
+    if (this.currentDragDivider) {
+      this.currentDragDivider.classList.remove('dragging');
+      this.currentDragDivider = null;
+    }
+
+    // Remove event listeners
+    document.removeEventListener('mousemove', this.boundDividerDrag);
+    document.removeEventListener('mouseup', this.boundDividerDragEnd);
+
+    // Save ratios to localStorage
+    this.saveGridRatios();
+
+    console.log(`📏 Finished dragging ${this.dragOrientation} divider`);
+  }
+
+  updateGridRatios(ratioDelta) {
+    const layout = this.currentLayout;
+    const ratios = this.gridRatios[layout];
+    const startRatios = this.dragStartRatios;
+
+    const MIN_RATIO = 0.3;
+    const MAX_RATIO = 3.0;
+
+    if (this.dragOrientation === 'vertical' && ratios.columns) {
+      // Adjust column ratios
+      const newFirst = Math.max(MIN_RATIO, Math.min(MAX_RATIO, startRatios.columns[0] + ratioDelta * 2));
+      const newSecond = Math.max(MIN_RATIO, Math.min(MAX_RATIO, startRatios.columns[1] - ratioDelta * 2));
+
+      ratios.columns[0] = newFirst;
+      ratios.columns[1] = newSecond;
+    } else if (this.dragOrientation === 'horizontal' && ratios.rows) {
+      // Adjust row ratios
+      const newFirst = Math.max(MIN_RATIO, Math.min(MAX_RATIO, startRatios.rows[0] + ratioDelta * 2));
+      const newSecond = Math.max(MIN_RATIO, Math.min(MAX_RATIO, startRatios.rows[1] - ratioDelta * 2));
+
+      ratios.rows[0] = newFirst;
+      ratios.rows[1] = newSecond;
+    }
+  }
+
+  applyGridRatios() {
+    const layout = this.currentLayout;
+    const ratios = this.gridRatios[layout];
+
+    if (!ratios) return;
+
+    const columnTemplate = ratios.columns.map(r => `${r}fr`).join(' ');
+    const rowTemplate = ratios.rows.map(r => `${r}fr`).join(' ');
+
+    this.gridContainer.style.gridTemplateColumns = columnTemplate;
+    this.gridContainer.style.gridTemplateRows = rowTemplate;
+  }
+
+  resetDivider(orientation) {
+    // Reset to default 1:1 ratio
+    const layout = this.currentLayout;
+    const ratios = this.gridRatios[layout];
+
+    if (orientation === 'vertical' && ratios.columns) {
+      ratios.columns = [1, 1];
+    } else if (orientation === 'horizontal' && ratios.rows) {
+      ratios.rows = [1, 1];
+    }
+
+    this.applyGridRatios();
+    this.positionDividers();
+    this.saveGridRatios();
+
+    console.log(`📏 Reset ${orientation} divider to default`);
+  }
+
+  loadGridRatios() {
+    try {
+      const saved = localStorage.getItem('quadtv-grid-ratios');
+      if (saved) {
+        this.gridRatios = JSON.parse(saved);
+        console.log('📏 Loaded saved grid ratios');
+      }
+    } catch (error) {
+      console.warn('Failed to load grid ratios:', error);
+    }
+  }
+
+  saveGridRatios() {
+    try {
+      localStorage.setItem('quadtv-grid-ratios', JSON.stringify(this.gridRatios));
+      console.log('📏 Saved grid ratios');
+    } catch (error) {
+      console.warn('Failed to save grid ratios:', error);
+    }
   }
 }
 
