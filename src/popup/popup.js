@@ -47,7 +47,7 @@ class PopupManager {
         return;
       }
 
-      const response = await browser.runtime.sendMessage({ type: 'GET_TAB_STATE' });
+      const response = await browser.runtime.sendMessage({ type: 'GET_STATE' });
       this.isActive = response?.isActive || false;
 
       this.updateUI();
