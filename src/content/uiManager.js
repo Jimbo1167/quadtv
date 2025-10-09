@@ -368,7 +368,6 @@ class UIManager {
     // Remove existing dividers
     this.removeDividers();
 
-    // Only create dividers for 2x2 layout in Phase 1
     if (layout === '2x2') {
       // Create vertical divider (between left and right columns)
       const verticalDivider = this.createDivider('vertical', 0);
@@ -380,11 +379,30 @@ class UIManager {
       this.dividers.push(horizontalDivider);
       this.quadTVContainer.appendChild(horizontalDivider);
 
-      // Position dividers based on current ratios
-      this.positionDividers();
-
       console.log('📏 Created dividers for 2x2 layout');
+    } else if (layout === '2-vertical') {
+      // Create single vertical divider (between left and right streams)
+      const verticalDivider = this.createDivider('vertical', 0);
+      this.dividers.push(verticalDivider);
+      this.quadTVContainer.appendChild(verticalDivider);
+
+      console.log('📏 Created vertical divider for 2-vertical layout');
+    } else if (layout === '1+2') {
+      // Create vertical divider (between large stream and small streams)
+      const verticalDivider = this.createDivider('vertical', 0);
+      this.dividers.push(verticalDivider);
+      this.quadTVContainer.appendChild(verticalDivider);
+
+      // Create horizontal divider (between two small streams on right)
+      const horizontalDivider = this.createDivider('horizontal', 0);
+      this.dividers.push(horizontalDivider);
+      this.quadTVContainer.appendChild(horizontalDivider);
+
+      console.log('📏 Created dividers for 1+2 layout');
     }
+
+    // Position dividers based on current ratios
+    this.positionDividers();
   }
 
   createDivider(orientation, index) {
@@ -423,6 +441,8 @@ class UIManager {
       const totalColumns = ratios.columns.reduce((a, b) => a + b, 0);
       const leftPercent = (ratios.columns[0] / totalColumns) * 100;
       verticalDivider.style.left = `calc(${leftPercent}% - 4px)`;
+      verticalDivider.style.top = '0';
+      verticalDivider.style.bottom = '0';
     }
 
     // Position horizontal divider (if exists)
@@ -431,6 +451,17 @@ class UIManager {
       const totalRows = ratios.rows.reduce((a, b) => a + b, 0);
       const topPercent = (ratios.rows[0] / totalRows) * 100;
       horizontalDivider.style.top = `calc(${topPercent}% - 4px)`;
+
+      // For 1+2 layout, constrain horizontal divider to right column only
+      if (layout === '1+2') {
+        const totalColumns = ratios.columns.reduce((a, b) => a + b, 0);
+        const rightColumnStart = (ratios.columns[0] / totalColumns) * 100;
+        horizontalDivider.style.left = `${rightColumnStart}%`;
+        horizontalDivider.style.right = '0';
+      } else {
+        horizontalDivider.style.left = '0';
+        horizontalDivider.style.right = '0';
+      }
     }
   }
 
