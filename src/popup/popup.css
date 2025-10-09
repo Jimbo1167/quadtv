@@ -44,7 +44,7 @@ body {
   box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
 }
 
-.layout-section {
+.layout-section, .controls-section {
   margin-bottom: 24px;
 }
 
@@ -160,6 +160,7 @@ body {
   color: #e8eaed;
   font-size: 12px;
   padding: 8px 12px;
+  width: 100%;
 }
 
 .btn-secondary:hover {

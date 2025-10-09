@@ -57,9 +57,15 @@ class QuadTVContentScript {
         break;
 
       case 'GET_STATE':
-        sendResponse({ 
+        sendResponse({
           isActive: this.isActive
         });
+        break;
+
+      case 'RESET_GRID':
+        console.log('📏 Content: Resetting grid sizing');
+        this.messageBus.publish('RESET_GRID');
+        sendResponse({ success: true });
         break;
 
       default:

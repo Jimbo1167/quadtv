@@ -29,6 +29,7 @@ class UIManager {
     this.messageBus.subscribe('QUADTV_ACTIVATED', (data) => this.onQuadTVActivated(data));
     this.messageBus.subscribe('QUADTV_DEACTIVATED', () => this.deactivate());
     this.messageBus.subscribe('SET_LAYOUT', (data) => this.setLayout(data.layout));
+    this.messageBus.subscribe('RESET_GRID', () => this.resetAllGridRatios());
   }
 
   setupKeyboardShortcuts() {
@@ -593,6 +594,26 @@ class UIManager {
     } catch (error) {
       console.warn('Failed to save grid ratios:', error);
     }
+  }
+
+  resetAllGridRatios() {
+    // Reset all layouts to default 1:1 ratios
+    this.gridRatios = {
+      '2x2': { columns: [1, 1], rows: [1, 1] },
+      '1+2': { columns: [2, 1], rows: [1, 1] },
+      '2-vertical': { columns: [1, 1], rows: [1] }
+    };
+
+    // Apply to current layout if active
+    if (this.isActive) {
+      this.applyGridRatios();
+      this.positionDividers();
+    }
+
+    // Save reset ratios
+    this.saveGridRatios();
+
+    console.log('📏 Reset all grid ratios to defaults');
   }
 }
 

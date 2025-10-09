@@ -18,6 +18,10 @@ class PopupManager {
       this.toggleQuadTV();
     });
 
+    document.getElementById('resetGridBtn').addEventListener('click', () => {
+      this.resetGridSizing();
+    });
+
     // Layout selection
     document.querySelectorAll('.layout-option').forEach(button => {
       button.addEventListener('click', (e) => {
@@ -129,6 +133,35 @@ class PopupManager {
     document.querySelectorAll('.layout-option').forEach(button => {
       button.classList.toggle('active', button.dataset.layout === this.currentLayout);
     });
+  }
+
+  async resetGridSizing() {
+    try {
+      // Clear saved grid ratios from localStorage
+      localStorage.removeItem('quadtv-grid-ratios');
+
+      // Send message to content script to reset if active
+      const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+      const tab = tabs[0];
+
+      if (tab) {
+        await browser.runtime.sendMessage({
+          type: 'RESET_GRID'
+        });
+      }
+
+      console.log('📏 Grid sizing reset to defaults');
+
+      // Show confirmation
+      const resetBtn = document.getElementById('resetGridBtn');
+      const originalText = resetBtn.textContent;
+      resetBtn.textContent = '✓ Reset!';
+      setTimeout(() => {
+        resetBtn.textContent = originalText;
+      }, 1000);
+    } catch (error) {
+      console.error('Failed to reset grid:', error);
+    }
   }
 }
 

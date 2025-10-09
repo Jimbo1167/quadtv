@@ -131,6 +131,20 @@ class BackgroundController {
         sendResponse({ success: true });
         break;
 
+      case 'RESET_GRID':
+        // Reset grid sizing to defaults
+        try {
+          const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+          if (tabs[0]) {
+            await browser.tabs.sendMessage(tabs[0].id, { type: 'RESET_GRID' });
+          }
+          sendResponse({ success: true });
+        } catch (error) {
+          console.error('Failed to reset grid:', error);
+          sendResponse({ success: false });
+        }
+        break;
+
       default:
         console.log('❓ Background: Unknown message type', message.type);
         sendResponse({ success: false, error: 'Unknown message type' });
