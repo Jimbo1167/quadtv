@@ -48,7 +48,9 @@ class PopupManager {
       }
 
       const response = await browser.runtime.sendMessage({ type: 'GET_STATE' });
+      console.log('📊 Popup: GET_STATE response:', response);
       this.isActive = response?.isActive || false;
+      console.log('📊 Popup: isActive set to:', this.isActive);
 
       this.updateUI();
     } catch (error) {

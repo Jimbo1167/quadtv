@@ -112,6 +112,7 @@ class BackgroundController {
 
     switch (message.type) {
       case 'GET_STATE':
+        console.log('📊 Background: GET_STATE called, isActive:', this.isActive);
         sendResponse({
           isActive: this.isActive,
           currentLayout: this.currentLayout
@@ -143,6 +144,12 @@ class BackgroundController {
           console.error('Failed to reset grid:', error);
           sendResponse({ success: false });
         }
+        break;
+
+      case 'UI_STATE_CHANGED':
+        console.log('📊 Background: UI_STATE_CHANGED, isActive:', message.isActive);
+        this.isActive = message.isActive;
+        sendResponse({ success: true });
         break;
 
       default:

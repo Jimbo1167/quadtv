@@ -22,11 +22,17 @@ class QuadTVContentScript {
     this.messageBus.subscribe('UI_ACTIVATED', () => {
       this.isActive = true;
       console.log('📺 Content: UI activated');
+      // Notify background that UI is now active
+      browser.runtime.sendMessage({ type: 'UI_STATE_CHANGED', isActive: true })
+        .catch(err => console.error('Failed to notify background:', err));
     });
 
     this.messageBus.subscribe('UI_DEACTIVATED', () => {
       this.isActive = false;
       console.log('📺 Content: UI deactivated');
+      // Notify background that UI is now inactive
+      browser.runtime.sendMessage({ type: 'UI_STATE_CHANGED', isActive: false })
+        .catch(err => console.error('Failed to notify background:', err));
     });
   }
 
