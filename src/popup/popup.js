@@ -10,23 +10,12 @@ class PopupManager {
   async init() {
     this.setupEventListeners();
     await this.loadSettings();
-    await this.loadPresets();
     await this.updateStatus();
   }
 
   setupEventListeners() {
     document.getElementById('toggleBtn').addEventListener('click', () => {
       this.toggleQuadTV();
-    });
-
-    document.getElementById('savePresetBtn').addEventListener('click', () => {
-      this.savePreset();
-    });
-
-    document.getElementById('presetName').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        this.savePreset();
-      }
     });
 
     // Layout selection
@@ -42,51 +31,6 @@ class PopupManager {
     const settings = await this.storageManager.getSettings();
     this.currentLayout = settings.lastLayout || '2x2';
     this.updateLayoutSelection();
-  }
-
-  async loadPresets() {
-    const presets = await this.storageManager.getPresets();
-    const presetList = document.getElementById('presetList');
-
-    presetList.innerHTML = '';
-
-    Object.entries(presets).forEach(([name, preset]) => {
-      const presetElement = this.createPresetElement(name, preset);
-      presetList.appendChild(presetElement);
-    });
-
-    if (Object.keys(presets).length === 0) {
-      presetList.innerHTML = '<div class="no-presets">No saved presets</div>';
-    }
-  }
-
-  createPresetElement(name, preset) {
-    const div = document.createElement('div');
-    div.className = 'preset-item';
-
-    const date = new Date(preset.timestamp).toLocaleDateString();
-    const streamCount = preset.streams.filter(s => s.isLoaded).length;
-
-    div.innerHTML = `
-      <div>
-        <div class="preset-name">${name}</div>
-        <div class="preset-meta">${preset.layout} • ${streamCount} streams • ${date}</div>
-      </div>
-      <button class="preset-delete" data-preset="${name}">×</button>
-    `;
-
-    div.addEventListener('click', (e) => {
-      if (!e.target.classList.contains('preset-delete')) {
-        this.loadPreset(name);
-      }
-    });
-
-    div.querySelector('.preset-delete').addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.deletePreset(name);
-    });
-
-    return div;
   }
 
   async updateStatus() {
@@ -185,76 +129,6 @@ class PopupManager {
     document.querySelectorAll('.layout-option').forEach(button => {
       button.classList.toggle('active', button.dataset.layout === this.currentLayout);
     });
-  }
-
-  async savePreset() {
-    const nameInput = document.getElementById('presetName');
-    const name = nameInput.value.trim();
-
-    if (!name) {
-      alert('Please enter a preset name');
-      return;
-    }
-
-    if (!this.isActive) {
-      alert('QuadTV must be active to save a preset');
-      return;
-    }
-
-    try {
-      const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-      const tab = tabs[0];
-
-      if (tab) {
-        const response = await browser.tabs.sendMessage(tab.id, {
-          type: 'SAVE_PRESET',
-          name: name
-        });
-
-        if (response?.success) {
-          nameInput.value = '';
-          await this.loadPresets();
-        } else {
-          alert('Failed to save preset');
-        }
-      }
-    } catch (error) {
-      console.error('Failed to save preset:', error);
-      alert('Failed to save preset');
-    }
-  }
-
-  async loadPreset(name) {
-    try {
-      const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-      const tab = tabs[0];
-
-      if (tab) {
-        await browser.tabs.sendMessage(tab.id, {
-          type: 'LOAD_PRESET',
-          name: name
-        });
-
-        // Activate QuadTV if not already active
-        if (!this.isActive) {
-          await this.toggleQuadTV();
-        }
-
-        window.close();
-      }
-    } catch (error) {
-      console.error('Failed to load preset:', error);
-      alert('Failed to load preset');
-    }
-  }
-
-  async deletePreset(name) {
-    if (confirm(`Delete preset "${name}"?`)) {
-      const success = await this.storageManager.deletePreset(name);
-      if (success) {
-        await this.loadPresets();
-      }
-    }
   }
 }
 

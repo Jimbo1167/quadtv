@@ -435,6 +435,8 @@ class UIManager {
 
   onDividerDragStart(e, divider) {
     e.preventDefault();
+    e.stopPropagation();
+
     this.isDragging = true;
     this.dragOrientation = divider.dataset.orientation;
     this.dragStartPos = this.dragOrientation === 'vertical' ? e.clientX : e.clientY;
@@ -444,18 +446,27 @@ class UIManager {
     divider.classList.add('dragging');
     this.currentDragDivider = divider;
 
+    // Block pointer events on iframes during drag to prevent losing mouse events
+    document.querySelectorAll('.quadtv-iframe').forEach(iframe => {
+      iframe.style.pointerEvents = 'none';
+    });
+
     // Bind event handlers
     this.boundDividerDrag = (e) => this.onDividerDrag(e);
     this.boundDividerDragEnd = (e) => this.onDividerDragEnd(e);
 
-    document.addEventListener('mousemove', this.boundDividerDrag);
-    document.addEventListener('mouseup', this.boundDividerDragEnd);
+    // Listen on document for better drag handling
+    document.addEventListener('mousemove', this.boundDividerDrag, { capture: true });
+    document.addEventListener('mouseup', this.boundDividerDragEnd, { capture: true, once: true });
 
     console.log(`📏 Started dragging ${this.dragOrientation} divider`);
   }
 
   onDividerDrag(e) {
     if (!this.isDragging) return;
+
+    e.preventDefault();
+    e.stopPropagation();
 
     const currentPos = this.dragOrientation === 'vertical' ? e.clientX : e.clientY;
     const delta = currentPos - this.dragStartPos;
@@ -478,7 +489,12 @@ class UIManager {
   }
 
   onDividerDragEnd(e) {
+    console.log('📏 onDividerDragEnd called, isDragging:', this.isDragging);
+
     if (!this.isDragging) return;
+
+    e.preventDefault();
+    e.stopPropagation();
 
     this.isDragging = false;
 
@@ -488,14 +504,18 @@ class UIManager {
       this.currentDragDivider = null;
     }
 
-    // Remove event listeners
-    document.removeEventListener('mousemove', this.boundDividerDrag);
-    document.removeEventListener('mouseup', this.boundDividerDragEnd);
+    // Re-enable pointer events on iframes
+    document.querySelectorAll('.quadtv-iframe').forEach(iframe => {
+      iframe.style.pointerEvents = 'auto';
+    });
+
+    // Remove mousemove listener (mouseup already removed via 'once' option)
+    document.removeEventListener('mousemove', this.boundDividerDrag, { capture: true });
 
     // Save ratios to localStorage
     this.saveGridRatios();
 
-    console.log(`📏 Finished dragging ${this.dragOrientation} divider`);
+    console.log(`📏 ✅ Finished dragging ${this.dragOrientation} divider`);
   }
 
   updateGridRatios(ratioDelta) {

@@ -44,11 +44,11 @@ body {
   box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
 }
 
-.layout-section, .presets-section {
+.layout-section {
   margin-bottom: 24px;
 }
 
-.layout-section h3, .presets-section h3 {
+.layout-section h3 {
   margin: 0 0 12px 0;
   font-size: 14px;
   font-weight: 500;
@@ -122,74 +122,6 @@ body {
   grid-row: span 2;
 }
 
-.preset-controls {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-#presetName {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #333;
-  border-radius: 4px;
-  background: #2a2a2a;
-  color: #e8eaed;
-  font-size: 12px;
-}
-
-#presetName:focus {
-  outline: none;
-  border-color: #ff0000;
-}
-
-.preset-list {
-  max-height: 120px;
-  overflow-y: auto;
-}
-
-.preset-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  margin-bottom: 4px;
-  border: 1px solid #333;
-  border-radius: 4px;
-  background: #2a2a2a;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.preset-item:hover {
-  background: #333;
-}
-
-.preset-name {
-  font-size: 12px;
-  color: #e8eaed;
-}
-
-.preset-meta {
-  font-size: 10px;
-  color: #999;
-}
-
-.preset-delete {
-  background: none;
-  border: none;
-  color: #ff4444;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 4px;
-  border-radius: 2px;
-  transition: background 0.2s ease;
-}
-
-.preset-delete:hover {
-  background: rgba(255, 68, 68, 0.2);
-}
-
 .popup-footer {
   padding-top: 16px;
   border-top: 1px solid #333;
@@ -237,22 +169,4 @@ body {
 .btn-secondary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-/\* Scrollbar styling \*/
-.preset-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.preset-list::-webkit-scrollbar-track {
-  background: #1f1f1f;
-}
-
-.preset-list::-webkit-scrollbar-thumb {
-  background: #666;
-  border-radius: 3px;
-}
-
-.preset-list::-webkit-scrollbar-thumb:hover {
-  background: #888;
 }
