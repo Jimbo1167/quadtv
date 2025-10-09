@@ -26,8 +26,7 @@
    - Log in with a YouTube TV account (if available)
 
 2. **Activate QuadTV**
-   - Click the QuadTV toolbar icon, OR
-   - Press Ctrl+Shift+Q (keyboard shortcut)
+   - Click the QuadTV toolbar icon
    - The page should transform into a multi-view grid
 
 3. **Test Layout Switching**
@@ -50,7 +49,7 @@
    - Grid should return to default proportions
 
 6. **Deactivate**
-   - Click toolbar icon or press Ctrl+Shift+Q
+   - Click toolbar icon again
    - Page should return to normal YouTube TV interface
 
 ---
@@ -58,7 +57,7 @@
 ## Code Architecture
 
 ### Component Structure
-- **Background Script** (`background/backgroundController.js`): Handles browser action, keyboard shortcuts, and cross-component messaging
+- **Background Script** (`background/backgroundController.js`): Handles browser action and cross-component messaging
 - **Content Script** (`content/contentScript.js`): Message relay between background and UI
 - **UI Manager** (`content/uiManager.js`): Core UI logic, grid creation, divider management
 - **Popup** (`popup/popup.js`): Toolbar popup interface for controls

@@ -7,25 +7,12 @@ class BackgroundController {
 
   init() {
     this.setupBrowserActionListener();
-    this.setupCommandListener();
     this.setupMessageListener();
   }
 
   setupBrowserActionListener() {
     browser.browserAction.onClicked.addListener((tab) => {
       this.toggleQuadTV(tab);
-    });
-  }
-
-  setupCommandListener() {
-    browser.commands.onCommand.addListener((command) => {
-      if (command === 'toggle-quadtv') {
-        browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          if (tabs[0]) {
-            this.toggleQuadTV(tabs[0]);
-          }
-        });
-      }
     });
   }
 

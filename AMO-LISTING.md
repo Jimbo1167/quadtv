@@ -44,9 +44,9 @@ QuadTV lets you watch up to 4 YouTube TV channels simultaneously in a single bro
 
 **🎯 Simple Controls**
 - Click toolbar icon to activate/deactivate
-- Keyboard shortcut: Ctrl+Shift+Q
 - Easy layout switching from popup menu
 - Visual indicators show active state
+- One-click grid reset
 
 **🔒 Privacy-First Design**
 - No data collection or tracking
@@ -84,7 +84,6 @@ QuadTV lets you watch up to 4 YouTube TV channels simultaneously in a single bro
 ✅ Resizable stream dividers with drag-and-drop
 ✅ Persistent settings and preferences
 ✅ Grid reset functionality
-✅ Keyboard shortcuts for quick access
 ✅ Visual status indicators
 ✅ Clean, intuitive interface
 
@@ -150,7 +149,6 @@ youtube, tv, streaming, multi-view, quad, split-screen, sports, news, live-tv, p
 - Resizable stream dividers with drag-and-drop
 - Persistent layout preferences
 - Grid reset functionality
-- Keyboard shortcut (Ctrl+Shift+Q)
 - Visual status indicators
 
 **Privacy:**
