@@ -186,74 +186,6 @@ class UIManager {
     setTimeout(closeHelp, 10000);
   }
 
-  async addVersionBadgeIfDevMode() {
-    try {
-      // Get version from manifest
-      const manifestData = browser.runtime.getManifest();
-      const version = manifestData.version;
-
-      // Try to detect dev mode using multiple methods
-      let isDevMode = false;
-
-      // Method 1: Check if extension ID is temporary (UUID format)
-      const extensionId = browser.runtime.id;
-      const isTempId = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(extensionId);
-
-      if (isTempId) {
-        isDevMode = true;
-        console.log('🏷️ Dev mode detected: Temporary extension ID', extensionId);
-      }
-
-      // Method 2: Try management API
-      try {
-        const extensionInfo = await browser.management.getSelf();
-        if (extensionInfo.installType === 'development') {
-          isDevMode = true;
-          console.log('🏷️ Dev mode detected: installType is development');
-        }
-      } catch (e) {
-        // Management API might not be available
-        console.log('📋 Management API not available, using ID-based detection');
-      }
-
-      // Method 3: Check for update_url absence (dev extensions don't have it)
-      if (!manifestData.applications?.gecko?.update_url) {
-        // This is a weak indicator, but combined with other checks it helps
-        console.log('📋 No update_url in manifest (dev indicator)');
-      }
-
-      if (isDevMode) {
-        // Create version badge
-        const badge = document.createElement('div');
-        badge.id = 'quadtv-version-badge';
-        badge.textContent = `v${version} [DEV]`;
-        badge.style.cssText = `
-          position: fixed;
-          top: 10px;
-          right: 10px;
-          background: rgba(255, 0, 0, 0.9);
-          color: white;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-family: monospace;
-          font-size: 12px;
-          font-weight: bold;
-          z-index: 10003;
-          pointer-events: none;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        `;
-
-        this.quadTVContainer.appendChild(badge);
-        console.log(`🏷️ Showing version badge: v${version} [DEV]`);
-      } else {
-        console.log('📋 Production mode: Version badge hidden');
-      }
-    } catch (error) {
-      console.error('❌ Error adding version badge:', error);
-    }
-  }
-
   onQuadTVActivated(data) {
     console.log('📺 QuadTV: Activating iframe grid', data);
 
@@ -334,9 +266,6 @@ class UIManager {
 
     // Apply initial layout
     this.updateGridLayout(this.currentLayout);
-
-    // Add version badge in dev mode
-    this.addVersionBadgeIfDevMode();
 
     // Show onboarding help if first time user
     this.showOnboardingIfNeeded();
