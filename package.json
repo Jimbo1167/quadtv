@@ -1,6 +1,6 @@
 {
   "name": "quadtv",
-  "version": "0.1.0",
+  "version": "0.3.9",
   "description": "Firefox extension for multi-stream YouTube TV viewing",
   "main": "src/background/backgroundController.js",
   "scripts": {

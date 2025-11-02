@@ -47,7 +47,7 @@ class QuadTVContentScript {
   handleBackgroundMessage(message, sender, sendResponse) {
     switch (message.type) {
       case 'ACTIVATE_QUADTV':
-        this.activateQuadTV(message.layout);
+        this.activateQuadTV(message.layout, message.currentVideoUrl);
         sendResponse({ success: true });
         break;
 
@@ -79,12 +79,14 @@ class QuadTVContentScript {
     }
   }
 
-  activateQuadTV(layout) {
+  activateQuadTV(layout, currentVideoUrl) {
     console.log('📺 Content: Activating QuadTV iframe grid');
-    
+    console.log('📺 Content: Received currentVideoUrl:', currentVideoUrl);
+
     // Activate the iframe-based UI
     this.messageBus.publish('QUADTV_ACTIVATED', {
-      layout: layout || '2x2'
+      layout: layout || '2x2',
+      currentVideoUrl: currentVideoUrl
     });
   }
 

@@ -94,9 +94,17 @@ class PopupManager {
         type: this.isActive ? 'DEACTIVATE_QUADTV' : 'ACTIVATE_QUADTV'
       };
 
-      // Include layout when activating
+      // Include layout and current video URL when activating
       if (!this.isActive) {
         message.layout = this.currentLayout;
+
+        // Check if user is currently watching a video
+        if (tab.url && tab.url.includes('/watch/')) {
+          message.currentVideoUrl = tab.url;
+          console.log('📺 Popup: Detected current video:', tab.url);
+        } else {
+          console.log('📺 Popup: Not watching a video');
+        }
       }
 
       await browser.tabs.sendMessage(tab.id, message);

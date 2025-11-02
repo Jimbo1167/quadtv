@@ -8,6 +8,7 @@ class UIManager {
     this.iframes = []; // Store iframe references
     this.dividers = []; // Store divider elements
     this.isDragging = false;
+    this.activeAudioStream = null; // Track which stream has audio focus
 
     // Grid ratios for each layout (fr units)
     this.gridRatios = {
@@ -59,6 +60,14 @@ class UIManager {
       event.preventDefault();
       console.log('🎹 Keyboard shortcut: Cycling layout');
       this.cycleLayout();
+      return;
+    }
+
+    // Alt+M to toggle mute all streams
+    if ((key === 'm' || key === 'M') && event.altKey) {
+      event.preventDefault();
+      console.log('🎹 Keyboard shortcut: Toggle mute all streams');
+      this.toggleMuteAllStreams();
       return;
     }
 
@@ -135,13 +144,14 @@ class UIManager {
       <div style="text-align: left; margin: 16px 0;">
         <h3>🎹 Keyboard Shortcuts:</h3>
         <p><strong>Ctrl/Cmd + Space</strong> - Cycle layouts (2x2, 1+2, 2-vertical)</p>
+        <p><strong>Alt + M</strong> - Mute/unmute all streams</p>
         <p><strong>Esc</strong> - Exit QuadTV</p>
         <p><strong>?</strong> - Show this help</p>
 
-        <h3>📺 Multi-Stream Viewing:</h3>
-        <p>Watch multiple YouTube TV channels simultaneously</p>
-        <p>Control audio individually within each stream</p>
-        <p>Switch layouts to customize your viewing experience</p>
+        <h3>🔊 Audio Control:</h3>
+        <p><strong>Click on a stream</strong> - Give it audio focus (mutes all others)</p>
+        <p>Control audio automatically with click-to-focus</p>
+        <p>Use Alt+M to quickly mute/unmute everything</p>
 
         <h3>📏 Resizable Grid (2x2 layout):</h3>
         <p><strong>Drag dividers</strong> to resize streams</p>
@@ -176,12 +186,86 @@ class UIManager {
     setTimeout(closeHelp, 10000);
   }
 
+  async addVersionBadgeIfDevMode() {
+    try {
+      // Get version from manifest
+      const manifestData = browser.runtime.getManifest();
+      const version = manifestData.version;
+
+      // Try to detect dev mode using multiple methods
+      let isDevMode = false;
+
+      // Method 1: Check if extension ID is temporary (UUID format)
+      const extensionId = browser.runtime.id;
+      const isTempId = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(extensionId);
+
+      if (isTempId) {
+        isDevMode = true;
+        console.log('🏷️ Dev mode detected: Temporary extension ID', extensionId);
+      }
+
+      // Method 2: Try management API
+      try {
+        const extensionInfo = await browser.management.getSelf();
+        if (extensionInfo.installType === 'development') {
+          isDevMode = true;
+          console.log('🏷️ Dev mode detected: installType is development');
+        }
+      } catch (e) {
+        // Management API might not be available
+        console.log('📋 Management API not available, using ID-based detection');
+      }
+
+      // Method 3: Check for update_url absence (dev extensions don't have it)
+      if (!manifestData.applications?.gecko?.update_url) {
+        // This is a weak indicator, but combined with other checks it helps
+        console.log('📋 No update_url in manifest (dev indicator)');
+      }
+
+      if (isDevMode) {
+        // Create version badge
+        const badge = document.createElement('div');
+        badge.id = 'quadtv-version-badge';
+        badge.textContent = `v${version} [DEV]`;
+        badge.style.cssText = `
+          position: fixed;
+          top: 10px;
+          right: 10px;
+          background: rgba(255, 0, 0, 0.9);
+          color: white;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 12px;
+          font-weight: bold;
+          z-index: 10003;
+          pointer-events: none;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        `;
+
+        this.quadTVContainer.appendChild(badge);
+        console.log(`🏷️ Showing version badge: v${version} [DEV]`);
+      } else {
+        console.log('📋 Production mode: Version badge hidden');
+      }
+    } catch (error) {
+      console.error('❌ Error adding version badge:', error);
+    }
+  }
+
   onQuadTVActivated(data) {
     console.log('📺 QuadTV: Activating iframe grid', data);
 
     if (data.layout) {
       this.currentLayout = data.layout;
       console.log(`📐 UI: Layout set to ${data.layout}`);
+    }
+
+    // Store current video URL if provided
+    if (data.currentVideoUrl) {
+      this.currentVideoUrl = data.currentVideoUrl;
+      console.log('📺 UI: Current video URL:', this.currentVideoUrl);
     }
 
     if (this.isActive) {
@@ -216,6 +300,9 @@ class UIManager {
     // Remove QuadTV grid
     this.removeQuadTVGrid();
 
+    // Reset current video URL
+    this.currentVideoUrl = null;
+
     this.isActive = false;
 
     console.log('📺 Tab: QuadTV grid deactivated');
@@ -248,6 +335,9 @@ class UIManager {
     // Apply initial layout
     this.updateGridLayout(this.currentLayout);
 
+    // Add version badge in dev mode
+    this.addVersionBadgeIfDevMode();
+
     // Show onboarding help if first time user
     this.showOnboardingIfNeeded();
 
@@ -259,10 +349,24 @@ class UIManager {
     container.className = 'quadtv-stream';
     container.dataset.streamIndex = index;
 
+    console.log(`📺 UI: Creating stream ${index}, currentVideoUrl:`, this.currentVideoUrl);
+
     // Create iframe for YouTube TV
     const iframe = document.createElement('iframe');
     iframe.className = 'quadtv-iframe';
-    iframe.src = 'https://tv.youtube.com';
+
+    // If this is the first stream and we have a current video URL, use it
+    if (index === 0 && this.currentVideoUrl) {
+      iframe.src = this.currentVideoUrl;
+      console.log('✅ UI: Setting first iframe to current video:', this.currentVideoUrl);
+
+      // Mute/stop any video playing in the background page
+      this.stopBackgroundVideo();
+    } else {
+      iframe.src = 'https://tv.youtube.com';
+      console.log(`📺 UI: Setting stream ${index} to home page (iframe)`);
+    }
+
     iframe.allow = 'autoplay; fullscreen';
     iframe.setAttribute('loading', 'lazy');
     iframe.dataset.streamIndex = index;
@@ -270,19 +374,59 @@ class UIManager {
     // Store iframe reference
     this.iframes[index] = iframe;
 
+    container.appendChild(iframe);
+
     // Create stream number indicator
     const streamNumber = document.createElement('div');
     streamNumber.className = 'stream-number';
     streamNumber.textContent = `${index + 1}`;
 
-    container.appendChild(iframe);
+    // Add click handler for audio focus
+    container.addEventListener('click', (e) => {
+      // Only trigger if clicking on the container or stream number, not the iframe
+      if (e.target === container || e.target === streamNumber) {
+        this.setAudioFocus(index);
+      }
+    });
+
     container.appendChild(streamNumber);
 
     return container;
   }
 
+  stopBackgroundVideo() {
+    try {
+      // Find all video elements in the main page and pause them
+      const videos = document.querySelectorAll('video');
+      videos.forEach((video, index) => {
+        if (!video.paused) {
+          video.pause();
+          video.muted = true;
+          console.log(`🔇 UI: Paused and muted background video ${index + 1}`);
+        }
+      });
+
+      // Hide the main YouTube TV content to prevent interaction
+      const yttvApp = document.querySelector('ytlr-app');
+      if (yttvApp) {
+        yttvApp.style.display = 'none';
+        this.hiddenYttvApp = yttvApp; // Store reference for restoration
+        console.log('📺 UI: Hidden main YouTube TV app');
+      }
+    } catch (error) {
+      console.warn('Failed to stop background video:', error);
+    }
+  }
+
   removeQuadTVGrid() {
     if (this.quadTVContainer) {
+      // Restore hidden YouTube TV app
+      if (this.hiddenYttvApp) {
+        this.hiddenYttvApp.style.display = '';
+        this.hiddenYttvApp = null;
+        console.log('📺 UI: Restored YouTube TV app visibility');
+      }
+
       this.quadTVContainer.remove();
       this.quadTVContainer = null;
       this.gridContainer = null;
@@ -645,6 +789,224 @@ class UIManager {
     this.saveGridRatios();
 
     console.log('📏 Reset all grid ratios to defaults');
+  }
+
+  // ===== AUDIO CONTROL =====
+
+  /**
+   * Wait for iframe to be ready and YouTube TV controls to be loaded
+   */
+  waitForIframeReady(iframe, timeout = 10000) {
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+
+      const checkReady = () => {
+        try {
+          // Check if iframe contentWindow is accessible
+          if (!iframe.contentWindow || !iframe.contentWindow.document) {
+            if (Date.now() - startTime < timeout) {
+              setTimeout(checkReady, 100);
+            } else {
+              resolve(false);
+            }
+            return;
+          }
+
+          // Check if volume button exists in the DOM
+          const volumeButton = iframe.contentWindow.document.querySelector('ytu-icon-button.ypc-volume-button button');
+
+          if (volumeButton) {
+            resolve(true);
+          } else if (Date.now() - startTime < timeout) {
+            setTimeout(checkReady, 100);
+          } else {
+            resolve(false);
+          }
+        } catch (error) {
+          if (Date.now() - startTime < timeout) {
+            setTimeout(checkReady, 100);
+          } else {
+            resolve(false);
+          }
+        }
+      };
+
+      checkReady();
+    });
+  }
+
+  /**
+   * Toggle mute for a specific stream
+   */
+  async toggleMuteForStream(streamIndex) {
+    const iframe = this.iframes[streamIndex];
+    if (!iframe) {
+      console.warn(`Stream ${streamIndex} not found`);
+      return false;
+    }
+
+    // Wait for iframe to be ready
+    const isReady = await this.waitForIframeReady(iframe);
+    if (!isReady) {
+      console.warn(`Stream ${streamIndex} controls not ready`);
+      return false;
+    }
+
+    try {
+      const iframeDoc = iframe.contentWindow.document;
+      const volumeButton = iframeDoc.querySelector('ytu-icon-button.ypc-volume-button button');
+
+      if (volumeButton) {
+        volumeButton.click();
+        console.log(`🔊 Toggled mute for stream ${streamIndex}`);
+        return true;
+      } else {
+        console.warn(`Volume button not found in stream ${streamIndex}`);
+        return false;
+      }
+    } catch (error) {
+      console.error(`Error toggling mute for stream ${streamIndex}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Ensure a stream is muted
+   */
+  async ensureMuted(streamIndex) {
+    const iframe = this.iframes[streamIndex];
+    if (!iframe) return false;
+
+    const isReady = await this.waitForIframeReady(iframe);
+    if (!isReady) return false;
+
+    try {
+      const iframeDoc = iframe.contentWindow.document;
+      const volumeButton = iframeDoc.querySelector('ytu-icon-button.ypc-volume-button button');
+
+      if (volumeButton) {
+        const ariaLabel = volumeButton.getAttribute('aria-label') || '';
+        // If aria-label contains "Mute (m)", audio is ON, so click to mute
+        if (ariaLabel.includes('Mute (m)')) {
+          volumeButton.click();
+          console.log(`🔇 Muted stream ${streamIndex}`);
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error(`Error muting stream ${streamIndex}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Ensure a stream is unmuted
+   */
+  async ensureUnmuted(streamIndex) {
+    const iframe = this.iframes[streamIndex];
+    if (!iframe) return false;
+
+    const isReady = await this.waitForIframeReady(iframe);
+    if (!isReady) return false;
+
+    try {
+      const iframeDoc = iframe.contentWindow.document;
+      const volumeButton = iframeDoc.querySelector('ytu-icon-button.ypc-volume-button button');
+
+      if (volumeButton) {
+        const ariaLabel = volumeButton.getAttribute('aria-label') || '';
+        // If aria-label contains "Unmute (m)", audio is OFF, so click to unmute
+        if (ariaLabel.includes('Unmute (m)')) {
+          volumeButton.click();
+          console.log(`🔊 Unmuted stream ${streamIndex}`);
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error(`Error unmuting stream ${streamIndex}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Set audio focus to a specific stream (mutes all others)
+   */
+  async setAudioFocus(streamIndex) {
+    const streamCount = this.getStreamCountForLayout(this.currentLayout);
+
+    console.log(`🎧 Setting audio focus to stream ${streamIndex}`);
+
+    // Mute all streams first
+    const mutePromises = [];
+    for (let i = 0; i < streamCount; i++) {
+      if (i !== streamIndex) {
+        mutePromises.push(this.ensureMuted(i));
+      }
+    }
+
+    // Wait for all mutes to complete
+    await Promise.all(mutePromises);
+
+    // Unmute the target stream
+    await this.ensureUnmuted(streamIndex);
+
+    // Update active stream tracking
+    this.activeAudioStream = streamIndex;
+
+    // Update visual indicators
+    this.updateAudioFocusIndicators();
+  }
+
+  /**
+   * Mute or unmute all streams
+   */
+  async muteAllStreams(shouldMute = true) {
+    const streamCount = this.getStreamCountForLayout(this.currentLayout);
+    const action = shouldMute ? 'Muting' : 'Unmuting';
+
+    console.log(`🔇 ${action} all streams`);
+
+    const promises = [];
+    for (let i = 0; i < streamCount; i++) {
+      if (shouldMute) {
+        promises.push(this.ensureMuted(i));
+      } else {
+        promises.push(this.ensureUnmuted(i));
+      }
+    }
+
+    await Promise.all(promises);
+
+    if (shouldMute) {
+      this.activeAudioStream = null;
+      this.updateAudioFocusIndicators();
+    }
+  }
+
+  /**
+   * Toggle mute for all streams (used by Alt+M shortcut)
+   */
+  async toggleMuteAllStreams() {
+    // If there's an active audio stream, mute all. Otherwise, unmute all.
+    const shouldMute = this.activeAudioStream !== null;
+    await this.muteAllStreams(shouldMute);
+  }
+
+  /**
+   * Update visual indicators for audio focus
+   */
+  updateAudioFocusIndicators() {
+    const streams = document.querySelectorAll('.quadtv-stream');
+
+    streams.forEach((stream, index) => {
+      if (index === this.activeAudioStream) {
+        stream.classList.add('audio-focus');
+      } else {
+        stream.classList.remove('audio-focus');
+      }
+    });
   }
 }
 

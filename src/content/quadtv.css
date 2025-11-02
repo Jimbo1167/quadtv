@@ -9,6 +9,7 @@
   background: #000;
   z-index: 10000;
   overflow: hidden;
+  pointer-events: all;
 }
 
 .quadtv-grid-container {
@@ -220,12 +221,23 @@
   animation: audioGlow 2s ease-in-out infinite alternate;
 }
 
+.quadtv-stream.audio-focus {
+  border: 3px solid #ff0000;
+  box-shadow: 0 0 16px rgba(255, 0, 0, 0.6);
+  animation: audioGlow 2s ease-in-out infinite alternate;
+}
+
+.quadtv-stream.audio-focus .stream-number {
+  background: rgba(255, 0, 0, 0.9);
+  opacity: 1;
+}
+
 @keyframes audioGlow {
-  0% { 
+  0% {
     border-color: #ff0000;
     box-shadow: 0 0 12px rgba(255, 0, 0, 0.5);
   }
-  100% { 
+  100% {
     border-color: #ff4444;
     box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
   }

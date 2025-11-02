@@ -47,22 +47,34 @@ class BackgroundController {
 
   async activateQuadTV(tab) {
     console.log('🚀 Background: Activating QuadTV on tab', tab.id);
+    console.log('🔍 Background: Tab URL:', tab.url);
 
     try {
+      // Check if user is currently watching a video
+      let currentVideoUrl = null;
+      if (tab.url && tab.url.includes('/watch/')) {
+        currentVideoUrl = tab.url;
+        console.log('📺 Background: User is watching:', currentVideoUrl);
+      } else {
+        console.log('📺 Background: Not watching a video (no /watch/ in URL)');
+      }
+
       // Send activation message to content script
+      console.log('📤 Background: Sending message with currentVideoUrl:', currentVideoUrl);
       await browser.tabs.sendMessage(tab.id, {
         type: 'ACTIVATE_QUADTV',
-        layout: this.currentLayout
+        layout: this.currentLayout,
+        currentVideoUrl: currentVideoUrl
       });
 
       this.isActive = true;
-      
+
       // Update browser action icon
       browser.browserAction.setBadgeText({ text: '✓', tabId: tab.id });
       browser.browserAction.setBadgeBackgroundColor({ color: '#00ff00' });
 
       console.log('✅ Background: QuadTV activated successfully');
-      
+
     } catch (error) {
       console.error('❌ Background: Failed to activate QuadTV:', error);
       browser.browserAction.setBadgeText({ text: '❌', tabId: tab.id });
