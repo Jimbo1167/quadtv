@@ -1,24 +1,27 @@
 # QuadTV Development Backlog
 
-## 🎉 Latest Session Achievements (Major Progress!)
+## 🎉 Latest Release - v0.3.9
 
-**Session Date**: Current  
-**Status**: Major breakthrough - core functionality now fully working!
+**Release Date**: 2025-11-15
+**Status**: Stable release with resizable grid dividers
 
-### ✅ **Critical Issues Resolved:**
-- **Jest Testing**: Fixed all hanging tests, 112/112 tests now pass cleanly
-- **Extension Activation**: Fixed broken toolbar activation flow  
-- **Audio Switching**: Resolved "Stream not found" errors with automatic recovery
-- **Layout System**: Implemented complete browser window positioning
+### ✅ **Completed Features (v0.3.x):**
+- **Resizable Grid Dividers**: Drag to resize streams, auto-saves settings
+- **Three Working Layouts**: 2x2 (4 streams), 1+2 (3 streams), 2-Vertical (2 streams)
+- **Reset Grid Sizing**: Button to restore default proportions
+- **Keyboard Shortcuts**: Esc, Ctrl+Space, Alt+M, ? for help
+- **First-Time Onboarding**: Tutorial overlay for new users
+- **Layout Persistence**: Remembers your layout and sizing preferences
 
-### 🚀 **Major Features Completed:**
-- **QTV-004**: Audio switching logic - WORKING PERFECTLY
-- **QTV-009**: Layout engine implementation - CODE COMPLETE
+### 🔧 **Architecture Decisions:**
+- **Iframe-Based Visual Grid**: Provides reliable multi-view (ADR-004)
+- **Manual Audio Control**: Users control audio per-stream (cross-origin restrictions)
+- **Zero Dependencies**: Pure vanilla JavaScript, no external libraries
 
-### 📊 **Quality Improvements:**
-- Comprehensive debug logging and error recovery
-- Proper resource cleanup preventing memory leaks
-- Enhanced test architecture focused on multi-tab approach
+### 📊 **Quality Metrics:**
+- 112 passing tests
+- Zero external dependencies
+- Clean Jest test execution
 - Production-ready stability
 
 ---
@@ -127,44 +130,59 @@
   - Test: Channel switching works with YouTube TV navigation
   - Test: Handles YouTube TV authentication correctly
 
-## Epic 2.5: Hybrid Audio Coordination (QTV-025 to QTV-028)
-**Goal**: Restore audio control in iframe-based visual grid
-**Architecture Decision**: [ADR-003: Hybrid Iframe-PostMessage Audio Coordination](docs/adr/003-hybrid-iframe-audio-coordination.md)
+## Epic 2.5: Resizable Grid Dividers (v0.3.0 - v0.3.4)
+**Goal**: Allow users to customize stream sizes
+**Status**: ✅ **COMPLETED** in v0.3.x
 
-### Sprint 4.5: PostMessage Audio Infrastructure
-**Goal**: Implement audio coordination between parent and iframe streams
+### Sprint 4.5: Resizable Dividers Implementation
+**Goal**: Drag-to-resize with persistence
 
-- [ ] **QTV-025**: PostMessage infrastructure *(IN PROGRESS)*
-  - Test: Parent can send messages to all iframes
-  - Test: Iframes can send messages back to parent
-  - Test: Message protocol handles audio state changes
-  - Test: Error handling for failed message delivery
-  - Implementation: Standardized message types and payload structure
-  - Implementation: Message routing and validation
+- [x] **QTV-025**: Divider drag implementation *(COMPLETED v0.3.0)*
+  - ✅ Test: Horizontal divider drags up/down
+  - ✅ Test: Vertical divider drags left/right
+  - ✅ Test: Real-time grid resizing during drag
+  - ✅ Test: Cursor changes on hover
+  - ✅ Implementation: Mouse event handlers for drag
+  - ✅ Implementation: CSS Grid fr unit calculations
 
-- [ ] **QTV-026**: Content script injection into iframes
-  - Test: Content scripts successfully inject into YouTube TV iframes
-  - Test: Injected scripts can access video elements
-  - Test: Cross-origin iframe security doesn't block injection
-  - Test: Fallback handling when injection fails
-  - Implementation: Dynamic script injection via executeScript
-  - Implementation: Iframe readiness detection
+- [x] **QTV-026**: Grid ratio persistence *(COMPLETED v0.3.0)*
+  - ✅ Test: Ratios save to localStorage after drag
+  - ✅ Test: Ratios restore on activation
+  - ✅ Test: Ratios persist per layout
+  - ✅ Implementation: StorageManager integration
+  - ✅ Implementation: Load ratios on grid creation
 
-- [ ] **QTV-027**: Audio coordination protocol
-  - Test: Only one iframe has unmuted audio at a time
-  - Test: Clicking stream switches audio correctly
-  - Test: Audio state persists during layout changes
-  - Test: Visual indicators reflect actual audio state
-  - Implementation: Centralized audio state management
-  - Implementation: Iframe audio control delegation
+- [x] **QTV-027**: Multi-layout divider support *(COMPLETED v0.3.3)*
+  - ✅ Test: Works in 2x2 layout
+  - ✅ Test: Works in 1+2 layout
+  - ✅ Test: Works in 2-Vertical layout
+  - ✅ Test: Dividers show/hide based on layout
+  - ✅ Implementation: Dynamic divider creation per layout
+  - ✅ Implementation: Layout-specific drag boundaries
 
-- [ ] **QTV-028**: Visual feedback and error handling
-  - Test: Loading states during iframe initialization
-  - Test: Error messages when audio coordination fails
-  - Test: Graceful degradation to visual-only mode
-  - Test: User feedback for iframe communication issues
-  - Implementation: Robust error boundaries
-  - Implementation: User-friendly error messaging
+- [x] **QTV-028**: Reset functionality *(COMPLETED v0.3.4)*
+  - ✅ Test: Reset button in popup
+  - ✅ Test: Restores default grid ratios
+  - ✅ Test: Resets all layouts, not just current
+  - ✅ Implementation: Reset button in popup
+  - ✅ Implementation: Clear stored ratios and re-render grid
+
+**Documentation**: See `docs/resizable-grid-feature.md` and `docs/resizable-grid-implementation.md`
+
+---
+
+## ~~Epic 2.6: Hybrid Audio Coordination~~ (ABANDONED v0.2.1)
+**Status**: ❌ **CANCELLED** - Cross-origin restrictions prevent reliable implementation
+
+**Why Abandoned**:
+- Browser CORS prevents iframe audio control
+- PostMessage requires YouTube TV cooperation (not available)
+- Content script injection blocked by cross-origin policy
+- Multi-tab approach had poor UX (see ADR-004)
+
+**Decision**: Users control audio manually per-stream (see LIMITATIONS.md)
+
+**Code Removed**: IframeBridge, MessageProtocol, audio coordination logic (v0.2.1)
 
 ## Epic 3: Presets & Power User Features (UXR-202)
 

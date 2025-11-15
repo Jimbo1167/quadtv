@@ -1,4 +1,20 @@
+/**
+ * UIManager - Core UI management for QuadTV multi-stream interface
+ *
+ * Responsibilities:
+ * - Create and manage iframe grid overlay
+ * - Handle resizable dividers with drag-to-resize
+ * - Manage keyboard shortcuts (Esc, Ctrl+Space, Alt+M, ?)
+ * - Persist and restore grid sizing preferences
+ * - Coordinate layout switching (2x2, 1+2, 2-vertical)
+ *
+ * @class
+ */
 class UIManager {
+  /**
+   * Initialize UIManager with default state and event listeners
+   * Sets up message bus subscriptions, keyboard handlers, and loads saved grid ratios
+   */
   constructor() {
     this.isActive = false;
     this.currentLayout = '2x2';
@@ -20,6 +36,10 @@ class UIManager {
     this.init();
   }
 
+  /**
+   * Initialize UIManager by setting up listeners and loading persisted settings
+   * @private
+   */
   init() {
     this.setupMessageBusListeners();
     this.setupKeyboardShortcuts();
@@ -37,6 +57,14 @@ class UIManager {
     this.keyboardHandler = (event) => this.handleKeyboardShortcut(event);
   }
 
+  /**
+   * Handle keyboard shortcuts for QuadTV
+   * Supports: Esc (exit), Ctrl/Cmd+Space (cycle layouts), Alt+M (mute all), ? (help)
+   * Ignores shortcuts when user is typing in text fields
+   *
+   * @param {KeyboardEvent} event - The keyboard event
+   * @private
+   */
   handleKeyboardShortcut(event) {
     if (!this.isActive) return;
 
@@ -80,6 +108,11 @@ class UIManager {
     }
   }
 
+  /**
+   * Cycle through available layouts in sequence: 2x2 → 1+2 → 2-vertical → 2x2
+   * Updates the current layout and recreates the grid if active
+   * @public
+   */
   cycleLayout() {
     const layouts = ['2x2', '1+2', '2-vertical'];
     const currentIndex = layouts.indexOf(this.currentLayout);
@@ -90,6 +123,12 @@ class UIManager {
     this.setLayout(nextLayout);
   }
 
+  /**
+   * Get the number of streams for a given layout
+   * @param {string} layout - Layout key ('2x2', '1+2', '2-vertical')
+   * @returns {number} Number of streams (2, 3, or 4)
+   * @public
+   */
   getStreamCountForLayout(layout) {
     const counts = {
       '2x2': 4,
@@ -186,6 +225,15 @@ class UIManager {
     setTimeout(closeHelp, 10000);
   }
 
+  /**
+   * Handle QUADTV_ACTIVATED message to create the multi-stream grid
+   * Updates layout if specified, stores current video URL if provided
+   *
+   * @param {Object} data - Activation data
+   * @param {string} [data.layout] - Layout to use ('2x2', '1+2', '2-vertical')
+   * @param {string} [data.currentVideoUrl] - Current video URL to preserve
+   * @public
+   */
   onQuadTVActivated(data) {
     console.log('📺 QuadTV: Activating iframe grid', data);
 
@@ -210,6 +258,11 @@ class UIManager {
     }
   }
 
+  /**
+   * Activate QuadTV by creating the grid and enabling keyboard shortcuts
+   * Publishes UI_ACTIVATED message when complete
+   * @private
+   */
   activate() {
     if (this.isActive) return;
 
@@ -223,6 +276,11 @@ class UIManager {
     this.messageBus.publish('UI_ACTIVATED');
   }
 
+  /**
+   * Deactivate QuadTV by removing the grid, cleaning up resources, and disabling shortcuts
+   * Publishes UI_DEACTIVATED message when complete
+   * @public
+   */
   deactivate() {
     if (!this.isActive) return;
 
@@ -364,6 +422,13 @@ class UIManager {
     }
   }
 
+  /**
+   * Change the current layout and update the grid if active
+   * Stores layout preference even when inactive for next activation
+   *
+   * @param {string} layout - Layout key ('2x2', '1+2', '2-vertical')
+   * @public
+   */
   setLayout(layout) {
     console.log(`📐 UI: Setting layout to ${layout}`);
     this.currentLayout = layout;

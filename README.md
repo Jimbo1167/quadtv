@@ -4,12 +4,18 @@ A Firefox extension that enables multi-stream viewing for YouTube TV, transformi
 
 ## Features
 
-- **One-Click Activation**: Transform YouTube TV into multi-view mode instantly
-- **Multiple Layouts**: Choose from 2x2 grid, 1+3 layout, or 2-vertical arrangement
-- **Manual Audio Control**: Click audio buttons (🔊) to switch between stream audio
-- **Focus Mode**: Maximize individual streams for detail viewing
-- **Layout Presets**: Save and load custom channel configurations
-- **Keyboard Shortcuts**: Quick toggle with Ctrl+Shift+Q
+- **One-Click Activation**: Transform YouTube TV into multi-view mode instantly from the toolbar icon
+- **Multiple Layouts**: Choose from three layouts:
+  - **2x2 Grid** - 4 equal streams
+  - **1+2 Layout** - 1 large stream + 2 smaller streams
+  - **2-Vertical** - 2 side-by-side streams
+- **Resizable Grid Dividers**: Drag dividers to customize stream sizes, settings auto-save
+- **Keyboard Shortcuts**:
+  - **Esc** - Exit QuadTV mode
+  - **Ctrl/Cmd+Space** - Cycle through layouts
+  - **Alt+M** - Mute all streams
+  - **?** - Show help overlay
+- **First-Time Tutorial**: Onboarding overlay with tips and shortcuts
 
 ## Development
 
@@ -47,12 +53,12 @@ npm run lint
 
 The extension follows a modular, iframe-based architecture:
 
-- **BackgroundController**: Handles browser events and toolbar interactions  
-- **UIManager**: Controls iframe grid creation and visual elements
+- **BackgroundController**: Handles browser events and toolbar interactions
+- **UIManager**: Controls iframe grid creation, resizable dividers, and visual elements
 - **LayoutEngine**: Provides layout definitions and CSS Grid generation
-- **StorageManager**: Handles data persistence for settings and presets
+- **StorageManager**: Handles data persistence for settings and grid sizing
 - **MessageBus**: Central communication hub between components
-- **IframeBridge**: Manages communication with YouTube TV iframes
+- **ContentScript**: Message relay between background and UI manager
 
 ### Testing
 
@@ -89,11 +95,13 @@ The extension will be available on the Firefox Add-ons store once released.
 ## Usage
 
 1. Navigate to [YouTube TV](https://tv.youtube.com)
-2. Click the QuadTV toolbar icon or press Ctrl+Shift+Q
-3. Choose your preferred layout from the popup
-4. Navigate each iframe to different content manually
-5. Click 🔊 audio buttons to switch between stream audio
-6. Hover over streams for additional controls
+2. Click the QuadTV toolbar icon to activate multi-view mode
+3. Choose your preferred layout from the popup (2x2, 1+2, or 2-Vertical)
+4. Each iframe displays YouTube TV - navigate to different channels in each stream
+5. **Drag dividers** to resize streams to your preference
+6. Click **Reset Grid Sizing** in the popup to restore default proportions
+7. Control audio manually within each stream (click volume in each iframe)
+8. Press **Esc** to exit QuadTV mode
 
 ## License
 

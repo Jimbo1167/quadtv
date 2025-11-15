@@ -27,12 +27,13 @@ Components communicate exclusively through the MessageBus to maintain modularity
 ## Key Features Status
 - ✅ One-click activation from toolbar icon (WORKING)
 - ✅ Multiple layout options (2x2, 1+2, 2-Vertical) - FULLY WORKING
-- ✅ Keyboard shortcuts (Esc to exit, Ctrl/Cmd+Space to cycle layouts, ? for help)
+- ✅ Resizable grid dividers - FULLY WORKING (drag to resize, auto-persists settings)
+- ✅ Keyboard shortcuts (Esc to exit, Ctrl/Cmd+Space to cycle layouts, Alt+M to mute all, ? for help)
 - ✅ Onboarding tutorial for first-time users
+- ✅ Reset grid sizing button in popup
 - ❌ Audio switching - REMOVED (users control audio manually per-stream)
-- 📋 Resizable grid dividers (PLANNED - see docs/resizable-grid-feature.md)
 - 📋 Focus mode for maximizing individual streams (TODO)
-- 📋 Layout presets with save/load functionality (TODO)
+- 📋 Layout presets with save/load functionality (TODO - backend ready, UI needed)
 
 ## Development Guidelines
 
@@ -69,9 +70,9 @@ Components communicate exclusively through the MessageBus to maintain modularity
 - ✅ No full-page refreshes during mode switching
 - ✅ Cross-browser compatibility without special permissions
 
-## Recent Developments (Latest Session - 2025-10-08)
+## Recent Developments
 
-### Version 0.2.1 - Major Simplification
+### Version 0.3.9 - Current Release
 - **Audio Control Removed**: Eliminated all cross-origin audio switching code (IframeBridge, MessageProtocol)
   - Rationale: Cross-origin security prevents reliable iframe audio control
   - Solution: Users manually control audio within each YouTube TV iframe
@@ -88,8 +89,17 @@ Components communicate exclusively through the MessageBus to maintain modularity
   - Simplified stream containers (removed audio indicators, kept stream numbers)
   - Updated keyboard shortcuts and onboarding help
 
-### Next Feature - Resizable Grid Dividers
-- **Status**: Design phase complete
-- **Documentation**: See `docs/resizable-grid-feature.md`
-- **Goal**: Allow users to drag dividers between streams to customize sizing
-- **Implementation**: Phase 1 starting with 2x2 layout proof of concept
+### Resizable Grid Dividers - COMPLETED (v0.3.x)
+- **Status**: Fully implemented and working
+- **Features**:
+  - Horizontal and vertical dividers are draggable
+  - Real-time grid resizing using CSS Grid fr units
+  - Settings auto-persist to localStorage
+  - Reset button in popup to restore defaults
+  - Works across all three layouts
+- **Documentation**: See `docs/resizable-grid-feature.md` and `docs/resizable-grid-implementation.md`
+
+### Next Potential Features
+- **Focus Mode**: CSS exists, needs click handler implementation
+- **Layout Presets**: StorageManager ready, needs popup UI for save/load
+- **Stream URL Persistence**: Save which channels users loaded per layout

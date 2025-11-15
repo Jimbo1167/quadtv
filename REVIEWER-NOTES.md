@@ -4,7 +4,7 @@
 
 **QuadTV** is a Firefox extension that enables multi-stream viewing for YouTube TV (tv.youtube.com). It allows users to watch up to 4 channels simultaneously in customizable layouts.
 
-**Version:** 1.0.0 (initial submission)
+**Version:** 0.3.9
 **License:** MIT License
 
 ---
@@ -154,18 +154,18 @@ QuadTV stores **locally only** (never transmitted):
 
 ## Source Code Access
 
-**Repository:** https://github.com/[your-username]/quadtv
+**Repository:** https://github.com/Jimbo1167/quadtv
 **Build script:** `build.sh` (creates this exact .zip package)
 **Tests:** `tests/` directory (not included in distribution)
 
 ### Reproducible Build
 To verify this package matches the source:
 ```bash
-git clone https://github.com/[your-username]/quadtv
+git clone https://github.com/Jimbo1167/quadtv
 cd quadtv
-git checkout v1.0.0
+git checkout v0.3.9
 ./build.sh
-# Compare dist/quadtv-1.0.0.zip with submitted package
+# Compare dist/quadtv-0.3.9.zip with submitted package
 ```
 
 ---
@@ -241,8 +241,7 @@ A: No. All code is vanilla JavaScript, fully readable and auditable.
 ## Contact
 
 If you have questions during review, please comment on the submission or contact via:
-- GitHub Issues: https://github.com/[your-username]/quadtv/issues
-- Email: [your-email]
+- GitHub Issues: https://github.com/Jimbo1167/quadtv/issues
 
 Thank you for reviewing QuadTV!
 
