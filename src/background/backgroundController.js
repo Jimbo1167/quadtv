@@ -1,10 +1,29 @@
+/**
+ * BackgroundController - Manages browser-level events and extension state
+ *
+ * Responsibilities:
+ * - Handle toolbar icon clicks
+ * - Coordinate activation/deactivation across tabs
+ * - Manage layout state
+ * - Route messages between popup and content scripts
+ *
+ * @class
+ */
 class BackgroundController {
+  /**
+   * Initialize BackgroundController with default state
+   * Sets up browser action and message listeners
+   */
   constructor() {
     this.isActive = false;
     this.currentLayout = '2x2'; // Default layout
     this.init();
   }
 
+  /**
+   * Initialize browser event listeners
+   * @private
+   */
   init() {
     this.setupBrowserActionListener();
     this.setupMessageListener();
@@ -23,6 +42,15 @@ class BackgroundController {
     });
   }
 
+  /**
+   * Toggle QuadTV on/off for the given tab
+   * Only works on YouTube TV pages (tv.youtube.com)
+   *
+   * @param {Object} tab - Browser tab object
+   * @param {number} tab.id - Tab ID
+   * @param {string} tab.url - Tab URL
+   * @public
+   */
   async toggleQuadTV(tab) {
     console.log('🚀 Background: Toggle QuadTV requested', { tabId: tab.id, url: tab.url });
 
@@ -45,6 +73,15 @@ class BackgroundController {
     }
   }
 
+  /**
+   * Activate QuadTV by sending activation message to content script
+   * Preserves current video URL if user is watching something
+   * Updates browser action badge to show active state
+   *
+   * @param {Object} tab - Browser tab object
+   * @throws {Error} If activation fails
+   * @private
+   */
   async activateQuadTV(tab) {
     console.log('🚀 Background: Activating QuadTV on tab', tab.id);
     console.log('🔍 Background: Tab URL:', tab.url);
@@ -82,6 +119,14 @@ class BackgroundController {
     }
   }
 
+  /**
+   * Deactivate QuadTV by sending deactivation message to content script
+   * Clears browser action badge
+   *
+   * @param {Object} tab - Browser tab object
+   * @throws {Error} If deactivation fails
+   * @private
+   */
   async deactivateQuadTV(tab) {
     console.log('🔄 Background: Deactivating QuadTV');
 
