@@ -9,7 +9,12 @@ A Firefox extension that enables multi-stream viewing for YouTube TV, transformi
   - **2x2 Grid** - 4 equal streams
   - **1+2 Layout** - 1 large stream + 2 smaller streams
   - **2-Vertical** - 2 side-by-side streams
-- **Resizable Grid Dividers**: Drag dividers to customize stream sizes, settings auto-save
+- **Resizable Grid Dividers**: Drag dividers to customize stream sizes
+  - Each layout remembers its own sizing preferences
+  - Double-click dividers to reset to defaults
+- **Stream Swapping**: Drag and drop streams to reorder channels
+  - Hover over a stream and drag the ⇄ button
+  - Visual feedback during drag and drop
 - **Keyboard Shortcuts**:
   - **Esc** - Exit QuadTV mode
   - **Ctrl/Cmd+Space** - Cycle through layouts

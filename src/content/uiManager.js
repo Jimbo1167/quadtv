@@ -187,15 +187,15 @@ class UIManager {
         <p><strong>Esc</strong> - Exit QuadTV</p>
         <p><strong>?</strong> - Show this help</p>
 
-        <h3>🔊 Audio Control:</h3>
-        <p><strong>Click on a stream</strong> - Give it audio focus (mutes all others)</p>
-        <p>Control audio automatically with click-to-focus</p>
-        <p>Use Alt+M to quickly mute/unmute everything</p>
+        <h3>🔀 Stream Swapping:</h3>
+        <p><strong>Drag streams</strong> to swap their positions</p>
+        <p>Hover over a stream and drag the ⇄ button</p>
+        <p>Drop on another stream to swap channels</p>
 
-        <h3>📏 Resizable Grid (2x2 layout):</h3>
-        <p><strong>Drag dividers</strong> to resize streams</p>
+        <h3>📏 Resizable Grid:</h3>
+        <p><strong>Drag dividers</strong> between streams to resize</p>
         <p><strong>Double-click divider</strong> to reset to equal sizing</p>
-        <p>Your custom sizing is saved automatically</p>
+        <p>Each layout remembers its own sizing preferences</p>
       </div>
       <button id="quadtv-help-close" style="
         background: #ff0000;
@@ -336,6 +336,9 @@ class UIManager {
     container.className = 'quadtv-stream';
     container.dataset.streamIndex = index;
 
+    // Make container draggable for stream swapping
+    container.draggable = true;
+
     console.log(`📺 UI: Creating stream ${index}, currentVideoUrl:`, this.currentVideoUrl);
 
     // Create iframe for YouTube TV
@@ -378,7 +381,153 @@ class UIManager {
 
     container.appendChild(streamNumber);
 
+    // Add swap button for easier stream swapping on mobile/touch devices
+    const swapButton = document.createElement('button');
+    swapButton.className = 'stream-swap-button';
+    swapButton.innerHTML = '⇄';
+    swapButton.title = 'Drag to swap streams';
+    swapButton.setAttribute('draggable', 'true');
+
+    // Drag and drop handlers for stream swapping
+    this.setupStreamSwapHandlers(container, swapButton, index);
+
+    container.appendChild(swapButton);
+
     return container;
+  }
+
+  /**
+   * Setup drag and drop handlers for stream swapping
+   * @param {HTMLElement} container - Stream container element
+   * @param {HTMLElement} swapButton - Swap button element
+   * @param {number} index - Stream index
+   * @private
+   */
+  setupStreamSwapHandlers(container, swapButton, index) {
+    // Prevent drag from interfering with iframe interaction
+    const iframe = container.querySelector('.quadtv-iframe');
+    if (iframe) {
+      iframe.style.pointerEvents = 'auto';
+    }
+
+    // Dragstart - when starting to drag this stream
+    const onDragStart = (e) => {
+      this.draggedStreamIndex = index;
+      container.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', container.innerHTML);
+      console.log(`🔀 Started dragging stream ${index + 1}`);
+    };
+
+    // Dragover - when dragging over this stream
+    const onDragOver = (e) => {
+      if (e.preventDefault) {
+        e.preventDefault();
+      }
+      e.dataTransfer.dropEffect = 'move';
+
+      // Add visual feedback
+      if (this.draggedStreamIndex !== index) {
+        container.classList.add('drag-over');
+      }
+      return false;
+    };
+
+    // Dragleave - when leaving this stream
+    const onDragLeave = (e) => {
+      container.classList.remove('drag-over');
+    };
+
+    // Drop - when dropping on this stream
+    const onDrop = (e) => {
+      if (e.stopPropagation) {
+        e.stopPropagation();
+      }
+      e.preventDefault();
+
+      container.classList.remove('drag-over');
+
+      // Swap streams if dropping on a different stream
+      if (this.draggedStreamIndex !== undefined && this.draggedStreamIndex !== index) {
+        this.swapStreams(this.draggedStreamIndex, index);
+      }
+
+      return false;
+    };
+
+    // Dragend - when drag operation ends
+    const onDragEnd = (e) => {
+      container.classList.remove('dragging');
+      container.classList.remove('drag-over');
+
+      // Remove drag-over class from all streams
+      const allStreams = document.querySelectorAll('.quadtv-stream');
+      allStreams.forEach(s => s.classList.remove('drag-over'));
+
+      this.draggedStreamIndex = undefined;
+      console.log('🔀 Drag ended');
+    };
+
+    // Attach handlers to container
+    container.addEventListener('dragstart', onDragStart);
+    container.addEventListener('dragover', onDragOver);
+    container.addEventListener('dragleave', onDragLeave);
+    container.addEventListener('drop', onDrop);
+    container.addEventListener('dragend', onDragEnd);
+
+    // Also attach to swap button for easier grabbing
+    swapButton.addEventListener('dragstart', onDragStart);
+  }
+
+  /**
+   * Swap two streams by exchanging their iframe sources
+   * @param {number} index1 - First stream index
+   * @param {number} index2 - Second stream index
+   * @public
+   */
+  swapStreams(index1, index2) {
+    console.log(`🔀 Swapping streams ${index1 + 1} and ${index2 + 1}`);
+
+    const iframe1 = this.iframes[index1];
+    const iframe2 = this.iframes[index2];
+
+    if (!iframe1 || !iframe2) {
+      console.warn('Cannot swap: iframes not found');
+      return;
+    }
+
+    // Swap iframe sources
+    const tempSrc = iframe1.src;
+    iframe1.src = iframe2.src;
+    iframe2.src = tempSrc;
+
+    console.log(`✅ Swapped stream ${index1 + 1} (${iframe2.src}) ↔ stream ${index2 + 1} (${iframe1.src})`);
+
+    // Show feedback to user
+    this.showSwapFeedback(index1, index2);
+  }
+
+  /**
+   * Show visual feedback when streams are swapped
+   * @param {number} index1 - First stream index
+   * @param {number} index2 - Second stream index
+   * @private
+   */
+  showSwapFeedback(index1, index2) {
+    const streams = document.querySelectorAll('.quadtv-stream');
+    const stream1 = streams[index1];
+    const stream2 = streams[index2];
+
+    if (stream1 && stream2) {
+      // Flash effect
+      stream1.classList.add('stream-swapped');
+      stream2.classList.add('stream-swapped');
+
+      setTimeout(() => {
+        stream1.classList.remove('stream-swapped');
+        stream2.classList.remove('stream-swapped');
+      }, 600);
+    }
   }
 
   stopBackgroundVideo() {
@@ -449,36 +598,23 @@ class UIManager {
       return;
     }
 
+    // Store reference for applyGridRatios
+    this.gridContainer = gridContainer;
+
     // Set layout data attribute for CSS styling
     gridContainer.setAttribute('data-layout', layout);
     console.log(`📐 UI: Set data-layout="${layout}" on grid container`);
 
-    // Update grid CSS based on layout
-    const layoutStyles = {
-      '2x2': {
-        'grid-template-columns': '1fr 1fr',
-        'grid-template-rows': '1fr 1fr',
-        'gap': '8px'
-      },
-      '1+2': {
-        'grid-template-columns': '2fr 1fr',
-        'grid-template-rows': '1fr 1fr',
-        'gap': '8px'
-      },
-      '2-vertical': {
-        'grid-template-columns': '1fr 1fr',
-        'grid-template-rows': '1fr',
-        'gap': '8px'
-      }
-    };
-
-    const styles = layoutStyles[layout] || layoutStyles['2x2'];
+    // Apply basic grid setup
     Object.assign(gridContainer.style, {
       display: 'grid',
       width: '100%',
       height: '100%',
-      ...styles
+      gap: '8px'
     });
+
+    // Apply saved grid ratios for this layout (or defaults if none saved)
+    this.applyGridRatios();
 
     // Show/hide streams based on layout requirements
     const requiredStreams = this.getStreamCountForLayout(layout);

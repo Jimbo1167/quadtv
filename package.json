@@ -1,7 +1,7 @@
 {
   "name": "quadtv",
-  "version": "0.3.9",
-  "description": "Firefox extension for multi-stream YouTube TV viewing",
+  "version": "0.4.0",
+  "description": "Firefox extension for multi-stream YouTube TV viewing with drag-and-drop stream swapping",
   "main": "src/background/backgroundController.js",
   "scripts": {
     "build": "npm run build:dev",

@@ -27,7 +27,8 @@ Components communicate exclusively through the MessageBus to maintain modularity
 ## Key Features Status
 - ✅ One-click activation from toolbar icon (WORKING)
 - ✅ Multiple layout options (2x2, 1+2, 2-Vertical) - FULLY WORKING
-- ✅ Resizable grid dividers - FULLY WORKING (drag to resize, auto-persists settings)
+- ✅ Resizable grid dividers - FULLY WORKING (per-layout memory, drag to resize, auto-persists)
+- ✅ Stream swapping - FULLY WORKING (drag-and-drop to reorder channels)
 - ✅ Keyboard shortcuts (Esc to exit, Ctrl/Cmd+Space to cycle layouts, Alt+M to mute all, ? for help)
 - ✅ Onboarding tutorial for first-time users
 - ✅ Reset grid sizing button in popup
@@ -72,7 +73,19 @@ Components communicate exclusively through the MessageBus to maintain modularity
 
 ## Recent Developments
 
-### Version 0.3.9 - Current Release
+### Version 0.4.0 - Current Release
+- **Stream Swapping**: Full drag-and-drop functionality to reorder streams
+  - Swap button (⇄) appears on hover for easy grabbing
+  - Visual feedback with red/green borders during drag
+  - Smooth swap animation with green flash on completion
+  - Works across all layouts
+
+- **Grid Divider Memory Per Layout**: Fixed major UX issue
+  - Each layout (2x2, 1+2, 2-vertical) now saves its own grid ratios
+  - Previously all layouts shared ratios causing layout switches to reset sizing
+  - Fixed by calling `applyGridRatios()` in `updateGridLayout()` instead of hardcoded defaults
+
+### Version 0.3.9
 - **Audio Control Removed**: Eliminated all cross-origin audio switching code (IframeBridge, MessageProtocol)
   - Rationale: Cross-origin security prevents reliable iframe audio control
   - Solution: Users manually control audio within each YouTube TV iframe

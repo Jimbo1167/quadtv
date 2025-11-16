@@ -5,6 +5,35 @@ All notable changes to QuadTV will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-11-16
+
+### Added
+- ✨ **Stream Swapping** - Drag and drop to reorder streams!
+  - Hover over any stream to see the ⇄ swap button
+  - Drag streams to new positions to swap their channels
+  - Visual feedback during drag (red dashed border on dragging stream, green on drop target)
+  - Smooth swap animation with green flash on completion
+  - Works across all three layouts (2x2, 1+2, 2-vertical)
+  - Accessible on mobile with visible swap buttons
+
+### Fixed
+- **Grid Divider Memory Per Layout** - Each layout now remembers its own sizing!
+  - Previously all layouts shared the same grid ratios
+  - Now 2x2, 1+2, and 2-Vertical each save their own custom sizing
+  - Switching between layouts preserves your preferred sizing for each
+  - Fixed bug where layout switching reset dividers to defaults
+
+### Changed
+- Updated onboarding tutorial to include stream swapping instructions
+- Updated help overlay (?) with per-layout grid memory information
+- Enhanced stream containers with draggable functionality
+
+### Technical
+- Added comprehensive JSDoc comments to `setupStreamSwapHandlers()`, `swapStreams()`, and `showSwapFeedback()`
+- Implemented drag-and-drop event handlers: dragstart, dragover, dragleave, drop, dragend
+- Added CSS animations for drag states (.dragging, .drag-over, .stream-swapped)
+- Refactored `updateGridLayout()` to call `applyGridRatios()` instead of hardcoded defaults
+
 ## [0.3.9] - 2025-11-15
 
 ### Fixed

@@ -277,6 +277,86 @@
   left: 0;
 }
 
+/* Stream Swap Button */
+.stream-swap-button {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: white;
+  width: 32px;
+  height: 32px;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 1000;
+  pointer-events: none;
+  user-select: none;
+}
+
+.quadtv-stream:hover .stream-swap-button {
+  opacity: 0.8;
+  pointer-events: all;
+}
+
+.stream-swap-button:hover {
+  opacity: 1;
+  background: rgba(255, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+  cursor: grab;
+}
+
+.stream-swap-button:active {
+  cursor: grabbing;
+}
+
+/* Drag and Drop States */
+.quadtv-stream.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+  transform: scale(0.95);
+  border: 2px dashed #ff0000;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+}
+
+.quadtv-stream.drag-over {
+  border: 2px dashed #00ff00;
+  background: rgba(0, 255, 0, 0.1);
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+  transform: scale(1.02);
+}
+
+/* Swap Feedback Animation */
+.quadtv-stream.stream-swapped {
+  animation: swapFlash 0.6s ease-out;
+}
+
+@keyframes swapFlash {
+  0%, 100% {
+    border-color: transparent;
+    box-shadow: none;
+  }
+  50% {
+    border: 3px solid #00ff00;
+    box-shadow: 0 0 24px rgba(0, 255, 0, 0.8);
+    transform: scale(1.05);
+  }
+}
+
+/* Disable pointer events on iframe during drag */
+.quadtv-stream.dragging .quadtv-iframe,
+.quadtv-stream.drag-over .quadtv-iframe {
+  pointer-events: none;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .quadtv-grid-container {
@@ -299,5 +379,17 @@
   .audio-indicator {
     font-size: 12px;
     padding: 2px 6px;
+  }
+
+  .stream-swap-button {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    opacity: 0.6;
+    pointer-events: all;
+  }
+
+  .quadtv-stream:hover .stream-swap-button {
+    opacity: 0.8;
   }
 }

@@ -9,10 +9,11 @@ Welcome to QuadTV! This guide will help you get the most out of multi-stream vie
 3. [Keyboard Shortcuts](#keyboard-shortcuts)
 4. [Layouts](#layouts)
 5. [Resizing Streams](#resizing-streams)
-6. [Audio Control](#audio-control)
-7. [Tips & Tricks](#tips--tricks)
-8. [Troubleshooting](#troubleshooting)
-9. [FAQ](#faq)
+6. [Stream Swapping](#stream-swapping)
+7. [Audio Control](#audio-control)
+8. [Tips & Tricks](#tips--tricks)
+9. [Troubleshooting](#troubleshooting)
+10. [FAQ](#faq)
 
 ---
 
@@ -159,6 +160,54 @@ If you want to restore the original proportions:
 3. All streams return to equal sizes
 
 **Note**: This resets ALL layouts to their defaults, not just the current one.
+
+### Per-Layout Memory
+
+**New in v0.4.0**: Each layout now remembers its own sizing preferences!
+
+- **2x2** can have different sizing than **1+2** or **2-Vertical**
+- When you switch layouts, your custom sizing for that layout is preserved
+- Example: Make left stream larger in 2x2, then switch to 1+2 - when you return to 2x2, the left stream is still larger!
+
+---
+
+## Stream Swapping
+
+**New in v0.4.0**: Easily reorder your streams with drag-and-drop!
+
+### How to Swap Streams
+
+1. **Hover over any stream** - A ⇄ swap button appears in the top-left corner
+2. **Click and drag** the swap button (or anywhere on the stream container)
+3. **Drag to another stream** - You'll see visual feedback:
+   - Dragging stream has a red dashed border and fades to 50% opacity
+   - Drop target has a green dashed border and highlights
+4. **Drop** to swap the two streams' channels
+
+### Visual Feedback
+
+During swapping, you'll see:
+- **Red dashed border** = Stream being dragged
+- **Green dashed border** = Where the stream will swap to
+- **Green flash** = Successful swap confirmation
+
+### Use Cases
+
+**Rearranging Your View**:
+- Found the perfect game in stream 3? Swap it to stream 1 (larger position)
+- Organizing channels by priority (most important in top-left)
+- Quick comparison by putting related content side-by-side
+
+**Mobile/Touch Support**:
+- Swap button is always visible on mobile devices for easier tapping
+- Drag works with both mouse and touch interfaces
+
+### Tips
+
+- You can drag from any part of the stream container, not just the swap button
+- Swap works across all layouts (2x2, 1+2, 2-vertical)
+- Swaps are instant - channels exchange positions immediately
+- The swap only exchanges iframe sources, not your custom sizing
 
 ---
 
