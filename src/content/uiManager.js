@@ -404,18 +404,19 @@ class UIManager {
    * @private
    */
   setupStreamSwapHandlers(container, swapButton, index) {
-    // Prevent drag from interfering with iframe interaction
-    const iframe = container.querySelector('.quadtv-iframe');
-    if (iframe) {
-      iframe.style.pointerEvents = 'auto';
-    }
-
     // Dragstart - when starting to drag this stream
     const onDragStart = (e) => {
       this.draggedStreamIndex = index;
       container.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/html', container.innerHTML);
+
+      // CRITICAL FIX: Disable pointer-events on ALL iframes to allow drop events
+      const allIframes = document.querySelectorAll('.quadtv-iframe');
+      allIframes.forEach(iframe => {
+        iframe.style.pointerEvents = 'none';
+      });
+
       console.log(`🔀 Started dragging stream ${index + 1}`);
     };
 
@@ -427,7 +428,7 @@ class UIManager {
       e.dataTransfer.dropEffect = 'move';
 
       // Add visual feedback
-      if (this.draggedStreamIndex !== index) {
+      if (this.draggedStreamIndex !== undefined && this.draggedStreamIndex !== index) {
         container.classList.add('drag-over');
       }
       return false;
@@ -435,7 +436,10 @@ class UIManager {
 
     // Dragleave - when leaving this stream
     const onDragLeave = (e) => {
-      container.classList.remove('drag-over');
+      // Only remove if we're actually leaving the container
+      if (!container.contains(e.relatedTarget)) {
+        container.classList.remove('drag-over');
+      }
     };
 
     // Drop - when dropping on this stream
@@ -463,6 +467,12 @@ class UIManager {
       // Remove drag-over class from all streams
       const allStreams = document.querySelectorAll('.quadtv-stream');
       allStreams.forEach(s => s.classList.remove('drag-over'));
+
+      // CRITICAL FIX: Re-enable pointer-events on all iframes
+      const allIframes = document.querySelectorAll('.quadtv-iframe');
+      allIframes.forEach(iframe => {
+        iframe.style.pointerEvents = 'auto';
+      });
 
       this.draggedStreamIndex = undefined;
       console.log('🔀 Drag ended');
