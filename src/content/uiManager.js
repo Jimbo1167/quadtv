@@ -490,7 +490,8 @@ class UIManager {
   }
 
   /**
-   * Swap two streams by exchanging their iframe sources
+   * Swap two streams by exchanging their iframe DOM elements
+   * This preserves YouTube TV's internal navigation state (SPA routing)
    * @param {number} index1 - First stream index
    * @param {number} index2 - Second stream index
    * @public
@@ -506,12 +507,39 @@ class UIManager {
       return;
     }
 
-    // Swap iframe sources
-    const tempSrc = iframe1.src;
-    iframe1.src = iframe2.src;
-    iframe2.src = tempSrc;
+    // Get the parent containers
+    const container1 = iframe1.parentElement;
+    const container2 = iframe2.parentElement;
 
-    console.log(`✅ Swapped stream ${index1 + 1} (${iframe2.src}) ↔ stream ${index2 + 1} (${iframe1.src})`);
+    if (!container1 || !container2) {
+      console.warn('Cannot swap: containers not found');
+      return;
+    }
+
+    // IMPORTANT: Since YouTube TV is a SPA, we need to swap the actual iframe DOM elements
+    // (not just their src attributes) to preserve the internal navigation state
+
+    // Create placeholder elements to mark positions
+    const placeholder1 = document.createElement('div');
+    const placeholder2 = document.createElement('div');
+
+    // Replace iframes with placeholders temporarily
+    container1.replaceChild(placeholder1, iframe1);
+    container2.replaceChild(placeholder2, iframe2);
+
+    // Now swap: put iframe1 where iframe2 was, and vice versa
+    container1.replaceChild(iframe2, placeholder1);
+    container2.replaceChild(iframe1, placeholder2);
+
+    // Update the iframes array to reflect the swap
+    this.iframes[index1] = iframe2;
+    this.iframes[index2] = iframe1;
+
+    // Update the data attributes to match new positions
+    iframe1.dataset.streamIndex = index2;
+    iframe2.dataset.streamIndex = index1;
+
+    console.log(`✅ Swapped stream ${index1 + 1} ↔ stream ${index2 + 1} (DOM elements swapped)`);
 
     // Show feedback to user
     this.showSwapFeedback(index1, index2);
