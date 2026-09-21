@@ -480,6 +480,9 @@ class UIManager {
       ...styles
     });
 
+    // Apply any saved column/row ratios so the grid matches the divider positions
+    this.applyGridRatios();
+
     // Show/hide streams based on layout requirements
     const requiredStreams = this.getStreamCountForLayout(layout);
     const allStreams = document.querySelectorAll('.quadtv-stream');

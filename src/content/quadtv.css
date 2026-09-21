@@ -145,7 +145,7 @@
 }
 
 /* Layout-specific overrides */
-.quadtv-grid-container[data-layout="1+3"] .quadtv-stream:first-child {
+.quadtv-grid-container[data-layout="1+2"] .quadtv-stream:first-child {
   grid-row: span 2;
 }
 
