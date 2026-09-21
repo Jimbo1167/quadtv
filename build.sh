@@ -34,6 +34,9 @@ rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}"
 mkdir -p "${DIST_DIR}"
 
+# Stamp the build with commit info
+node scripts/generate-build-info.js
+
 # Copy source files to build directory
 echo -e "${YELLOW}→ Copying source files...${NC}"
 
@@ -68,6 +71,8 @@ REQUIRED_FILES=(
   "shared/messageBus.js"
   "shared/layoutEngine.js"
   "shared/storageManager.js"
+  "shared/buildInfo.js"
+  "shared/buildLabel.js"
   "icons/icon-16.png"
   "icons/icon-32.png"
   "icons/icon-48.png"

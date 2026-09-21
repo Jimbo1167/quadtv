@@ -20,6 +20,8 @@
     {
       "matches": ["*://tv.youtube.com/*"],
       "js": [
+        "shared/buildInfo.js",
+        "shared/buildLabel.js",
         "shared/messageBus.js",
         "shared/layoutEngine.js",
         "shared/storageManager.js",

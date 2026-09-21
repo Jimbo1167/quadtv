@@ -44,6 +44,16 @@ class UIManager {
     this.setupMessageBusListeners();
     this.setupKeyboardShortcuts();
     this.loadGridRatios();
+    console.log(`🏷️ QuadTV build: ${this.getBuildLabel()}`);
+  }
+
+  /**
+   * Human-readable build stamp from the generated buildInfo.js
+   * @returns {string}
+   */
+  getBuildLabel() {
+    const format = window.QuadTVFormatBuildLabel;
+    return format ? format(window.QuadTVBuild) : 'unknown';
   }
 
   setupMessageBusListeners() {
@@ -208,6 +218,12 @@ class UIManager {
       ">Got it!</button>
     `;
 
+    // Build stamp (set via textContent, never interpolated into innerHTML)
+    const buildLine = document.createElement('p');
+    buildLine.style.cssText = 'font-size: 11px; color: #888; font-family: monospace;';
+    buildLine.textContent = `build: ${this.getBuildLabel()}`;
+    helpContent.appendChild(buildLine);
+
     helpOverlay.appendChild(helpContent);
     document.body.appendChild(helpOverlay);
 
@@ -272,7 +288,7 @@ class UIManager {
     // Add keyboard shortcuts
     document.addEventListener('keydown', this.keyboardHandler, { capture: true, passive: false });
 
-    console.log('📺 Tab: QuadTV grid activated');
+    console.log(`📺 Tab: QuadTV grid activated (build ${this.getBuildLabel()})`);
     this.messageBus.publish('UI_ACTIVATED');
   }
 

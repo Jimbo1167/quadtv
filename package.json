@@ -11,9 +11,21 @@
     "test:watch": "jest --watch",
     "lint": "web-ext lint --source-dir=src",
     "start": "web-ext run --source-dir=src --target=firefox-desktop",
-    "dev": "web-ext run --source-dir=src --target=firefox-desktop --reload"
+    "dev": "web-ext run --source-dir=src --target=firefox-desktop --reload",
+    "build:info": "node scripts/generate-build-info.js",
+    "prebuild:dev": "npm run build:info",
+    "prebuild:prod": "npm run build:info",
+    "predev": "npm run build:info",
+    "prestart": "npm run build:info",
+    "prelint": "npm run build:info"
   },
-  "keywords": ["firefox", "extension", "youtube-tv", "multiview", "streaming"],
+  "keywords": [
+    "firefox",
+    "extension",
+    "youtube-tv",
+    "multiview",
+    "streaming"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {

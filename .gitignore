@@ -27,3 +27,5 @@ web-ext-artifacts/
 # Temporary files
 *.tmp
 *.temp
+# Generated build stamp
+src/shared/buildInfo.js

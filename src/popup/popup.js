@@ -8,9 +8,16 @@ class PopupManager {
   }
 
   async init() {
+    this.showBuildInfo();
     this.setupEventListeners();
     await this.loadSettings();
     await this.updateStatus();
+  }
+
+  showBuildInfo() {
+    const el = document.getElementById('buildInfo');
+    if (!el) return;
+    el.textContent = window.QuadTVFormatBuildLabel(window.QuadTVBuild);
   }
 
   setupEventListeners() {
