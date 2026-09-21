@@ -9,6 +9,7 @@ const { MessageBus } = require('../../src/shared/messageBus.js');
 
 global.window.QuadTVMessageBus = new MessageBus();
 global.window.QuadTVLayoutEngine = {};
+global.window.addEventListener = jest.fn();
 
 const { UIManager } = require('../../src/content/uiManager.js');
 

@@ -64,6 +64,7 @@ REQUIRED_FILES=(
   "background/backgroundController.js"
   "content/contentScript.js"
   "content/uiManager.js"
+  "content/frameAgent.js"
   "content/quadtv.css"
   "popup/popup.html"
   "popup/popup.js"

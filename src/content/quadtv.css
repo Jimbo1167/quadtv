@@ -203,8 +203,13 @@
   font-family: Arial, sans-serif;
   opacity: 0.7;
   transition: opacity 0.2s ease;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   z-index: 999;
+}
+
+.stream-number:hover {
+  transform: scale(1.15);
 }
 
 .quadtv-stream:hover .stream-number {
