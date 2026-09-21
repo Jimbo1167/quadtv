@@ -342,8 +342,13 @@ class UIManager {
     const iframe = document.createElement('iframe');
     iframe.className = 'quadtv-iframe';
 
-    // If this is the first stream and we have a current video URL, use it
-    if (index === 0 && this.currentVideoUrl) {
+    // Streams hidden by the current layout start unloaded so they never play audio
+    if (index >= this.getStreamCountForLayout(this.currentLayout)) {
+      iframe.src = 'about:blank';
+      iframe.dataset.unloaded = 'true';
+      console.log(`📺 UI: Stream ${index} hidden by layout, leaving unloaded`);
+    } else if (index === 0 && this.currentVideoUrl) {
+      // If this is the first stream and we have a current video URL, use it
       iframe.src = this.currentVideoUrl;
       console.log('✅ UI: Setting first iframe to current video:', this.currentVideoUrl);
 
@@ -490,9 +495,11 @@ class UIManager {
     allStreams.forEach((stream, index) => {
       if (index < requiredStreams) {
         stream.style.display = 'block';
+        this.restoreStream(index);
         console.log(`📐 UI: Showing stream ${index}`);
       } else {
         stream.style.display = 'none';
+        this.unloadStream(index);
         console.log(`📐 UI: Hiding stream ${index}`);
       }
     });
@@ -501,6 +508,40 @@ class UIManager {
 
     // Update dividers for new layout
     this.updateDividers(layout);
+  }
+
+  /**
+   * Unload a hidden stream's iframe so it stops playing audio.
+   * Cross-origin rules block muting the player directly, so navigating the
+   * iframe to about:blank is the only reliable way to silence a hidden tile.
+   *
+   * @param {number} index - Stream index
+   * @private
+   */
+  unloadStream(index) {
+    const iframe = this.iframes[index];
+    if (!iframe || iframe.dataset.unloaded === 'true') return;
+
+    iframe.dataset.unloaded = 'true';
+    iframe.src = 'about:blank';
+    console.log(`🔇 UI: Unloaded hidden stream ${index}`);
+  }
+
+  /**
+   * Reload a previously unloaded stream's iframe when its tile becomes visible.
+   * The tile returns to the YouTube TV home page since the prior channel cannot
+   * be recovered from a cross-origin iframe.
+   *
+   * @param {number} index - Stream index
+   * @private
+   */
+  restoreStream(index) {
+    const iframe = this.iframes[index];
+    if (!iframe || iframe.dataset.unloaded !== 'true') return;
+
+    delete iframe.dataset.unloaded;
+    iframe.src = 'https://tv.youtube.com';
+    console.log(`📺 UI: Reloaded stream ${index}`);
   }
 
   // ===== RESIZABLE DIVIDERS =====
