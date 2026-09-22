@@ -1,13 +1,14 @@
-# Frame agent spike (branch `spike/frame-agent`)
+# Frame agent (per-tile audio control)
 
 ## Premise
 
-`LIMITATIONS.md` says audio can't be controlled because the tiles are
-cross-origin. They aren't: the page and every tile are `https://tv.youtube.com`.
-The main content script only runs in the top frame because the manifest never
-set `all_frames`, and the old attempt depended on YouTube's volume-button
-selector. This spike injects a second, tiny content script into every frame
-instead and lets it own the tile's `<video>` directly.
+Before 1.0, `LIMITATIONS.md` said audio couldn't be controlled because the
+tiles were cross-origin. They aren't: the page and every tile are
+`https://tv.youtube.com`. The main content script only ran in the top frame
+because the manifest never set `all_frames`, and the old attempt depended on
+YouTube's volume-button selector. Since 1.0 a second, tiny content script is
+injected into every frame and owns the tile's `<video>` directly. The decision
+is recorded in ADR-005.
 
 ## Pieces
 
@@ -25,15 +26,16 @@ instead and lets it own the tile's `<video>` directly.
   Alt-modified shortcuts (Alt+arrows, Alt+1–4, Alt+M) as `KEY` messages. Plain
   keys are left to YouTube TV so its own navigation keeps working.
 
-## What to verify
+## Manual verification
 
 1. Activate in 2x2. Only tile 1 should have sound. Console shows
    `FrameAgent: active in tile N` four times and `Tile N agent ready`.
 2. Click tile 3's number badge. Audio moves to tile 3, red glow follows.
 3. Change the channel inside tile 3. Sound should stay on (agent re-applies on
    the new video element).
-4. Switch to 2 Vertical and back to 2x2. Tiles 3 and 4 should come back on the
-   channel they were on, not the home page, and stay muted.
+4. Switch to 2 Vertical and back to 2x2 within 90 seconds. Tiles 3 and 4 come
+   back instantly, still on their channel and muted. Wait longer than 90
+   seconds before switching back and they reload to the same channel instead.
 5. Press 1 through 4 or the arrow keys with the page (not a tile) focused.
 6. Click inside a tile, then press Alt+Right / Alt+Down. Focus should still
    move. Plain arrows inside the tile should still drive YouTube TV.

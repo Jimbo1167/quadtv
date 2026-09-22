@@ -15,40 +15,19 @@ This document outlines the known limitations and constraints of QuadTV. Understa
 
 ## Technical Limitations
 
-### 1. Manual Audio Control Only
+### 1. Audio Focus Quirks
 
-**Limitation**: QuadTV cannot automatically switch audio between streams.
+**What works**: One stream has audio, the others are muted. Click a stream's number badge, press `1`–`4`, or use the arrow keys to move audio focus. `Alt+M` mutes everything.
 
-**Why**:
-- YouTube TV runs inside iframes from a different origin (`tv.youtube.com`)
-- Browser security (CORS - Cross-Origin Resource Sharing) prevents extensions from:
-  - Accessing iframe content from different domains
-  - Controlling video/audio elements inside cross-origin iframes
-  - Detecting playback state in cross-origin contexts
+**How**: The tiles are not cross-origin. The page and every tile are `https://tv.youtube.com`, so a small content script (`content/frameAgent.js`, injected with `all_frames`) runs inside each tile and sets `muted` on the tile's `<video>` element directly. The top frame talks to it with `postMessage` and an explicit origin. See `docs/frame-agent.md` and ADR-005.
 
-**Impact**:
-- Users must manually control audio in each stream
-- No "one-click audio switch" between streams
-- No visual indicators for which stream has audio active
+**Quirks you may notice**:
+- YouTube TV's own speaker icon inside a muted tile may show it as unmuted. The tile badge is the source of truth.
+- YouTube TV's ad player unmutes the element at ad boundaries. The agent reverts that on `volumechange` and re-asserts once a second, so you may hear a brief blip rather than a tile staying loud.
+- Keys pressed while a tile has focus go to YouTube TV, not to QuadTV. Hold `Alt` (Option on macOS) with the same keys, or click a badge first.
+- Unmuting is done by script. Firefox's autoplay policy could pause a stream that is unmuted without a gesture inside that frame; the agent calls `play()` afterwards as a nudge.
 
-**Workaround**:
-- Use `Alt+M` keyboard shortcut to mute all streams
-- Manually unmute your preferred stream using YouTube TV's controls
-- Keep other streams muted by default
-
-**Why We Don't Use PostMessage**:
-We explored PostMessage-based communication with iframes, but:
-- Requires YouTube TV to accept messages (they don't)
-- Would need content script injection into cross-origin iframes (blocked)
-- Even if possible, would be fragile (breaks if YouTube TV changes)
-
-**Alternative Considered**: Multi-tab architecture with browser-level tab muting
-- **Tried in v0.1.x**: Used multiple browser windows positioned on screen
-- **Why Abandoned**:
-  - Poor UX (windows could be covered/moved)
-  - Window positioning unreliable across OS and monitor configs
-  - Tab management complex and error-prone
-  - Iframe approach provides better visual grid (see ADR-004)
+**History**: Versions before 1.0 documented this as impossible due to cross-origin restrictions. The actual blocker was that the main content script only ran in the top frame, and the old attempt depended on YouTube's volume-button selector.
 
 ---
 
@@ -58,8 +37,8 @@ We explored PostMessage-based communication with iframes, but:
 
 **Why**:
 - Each stream is an independent YouTube TV session
-- No cross-iframe communication possible (see #1)
 - Each stream has its own buffer, latency, and playback position
+- The frame agent can mute and unmute, but does not try to seek or align playback
 
 **Impact**:
 - Live sports events may have slight delays between streams
@@ -80,6 +59,8 @@ We explored PostMessage-based communication with iframes, but:
 - Each time you activate QuadTV, streams start at YouTube TV home
 - You must manually navigate to channels each session
 - No "quick reload" of your favorite channel setup
+
+**Within a session**: A stream hidden by a smaller layout is unloaded (so it stops playing) and restored to the channel it was on when a larger layout brings it back. The agent inside the tile reports its URL to the top frame for this.
 
 **Future**: Layout presets (with saved channel URLs) are planned but not yet implemented. Backend infrastructure exists in `StorageManager`, but UI is not built.
 
@@ -150,29 +131,21 @@ We explored PostMessage-based communication with iframes, but:
 
 ## Browser Security Constraints
 
-### Cross-Origin Iframe Restrictions
+### Iframe Access Is Same-Origin, But Deliberately Narrow
 
-**Limitation**: Cannot access or control content inside YouTube TV iframes.
+**Reality**: The page and every tile are `https://tv.youtube.com`, so QuadTV *can* run a content script inside each tile. It uses that only for:
 
-**Blocked Actions**:
-- ❌ Reading iframe DOM
-- ❌ Controlling video/audio elements
-- ❌ Detecting playback state
-- ❌ Reading current channel/show
-- ❌ Programmatic navigation
-- ❌ Injecting scripts into iframes
+- ✅ Setting `muted` on the tile's `<video>` element
+- ✅ Reporting the tile's current URL so a hidden tile can be restored
+- ✅ Forwarding Alt-modified shortcut keys to the top frame
 
-**Why**:
-- Same-Origin Policy (SOP) - fundamental web security model
-- Cross-Origin Resource Sharing (CORS) - prevents data leaks
-- YouTube TV doesn't send `X-Frame-Options: ALLOWALL`
+**Still not done, by choice**:
+- ❌ Programmatic navigation or channel changes inside a tile
+- ❌ Seeking, pausing, or synchronizing playback
+- ❌ Reading anything about the show, account, or DVR
+- ❌ Depending on YouTube TV's DOM structure beyond `<video>` elements
 
-**What QuadTV CAN Do**:
-- ✅ Create iframes pointing to `tv.youtube.com`
-- ✅ Position and size iframes
-- ✅ Show/hide iframes
-- ✅ Manage the grid container
-- ✅ User can click inside iframes to interact normally
+The agent only activates in frames whose `window.name` starts with `quadtv-stream-`, which the grid sets. It never runs on YouTube TV's own nested frames or when QuadTV is inactive.
 
 ---
 
@@ -246,13 +219,13 @@ We explored PostMessage-based communication with iframes, but:
 
 **Trade-off**: QuadTV prioritizes reliability over advanced features.
 
-**Chosen**: Simple, manual audio control
-**Rejected**: Complex audio coordination with potential failures
+**Chosen**: One focused stream, everything else muted, one action to move focus
+**Rejected**: Per-stream volume mixing, hover-to-listen, YouTube-UI-driven control
 
 **Rationale**:
-- Users prefer predictable manual control
-- Complex audio switching was unreliable (v0.2.1 decision)
-- Reduced codebase from 1,200 → 352 lines in UIManager
+- One rule ("the badge is the source of truth") is easy to predict
+- The agent touches only `<video>.muted`, so it survives YouTube TV UI changes
+- v0.2.1 removed a heavier attempt that depended on YouTube's volume button; v1.0 brought audio back with a much smaller surface
 
 ---
 
@@ -267,7 +240,7 @@ We explored PostMessage-based communication with iframes, but:
 - Visual grid is more intuitive and reliable
 - No window management complexity
 - Works consistently across OS/monitor configs
-- Trade-off: Manual audio control (acceptable)
+- Audio focus arrived in v1.0 via the per-tile frame agent (ADR-005)
 
 ---
 
@@ -325,12 +298,11 @@ We explored PostMessage-based communication with iframes, but:
    - API namespace changes
    - Testing across browsers
 
-#### ❌ Likely Not Feasible
+#### ✅ Done in 1.0
 
-7. **Automatic Audio Switching**
-   - Blocked by CORS
-   - Would require YouTube TV cooperation
-   - Not happening without official API
+7. **Audio Focus** - see Technical Limitations #1 and ADR-005
+
+#### ❌ Likely Not Feasible
 
 8. **Synchronized Playback**
    - Requires cross-iframe communication
@@ -369,7 +341,7 @@ YouTube TV was not designed for:
 Browser extensions can:
 - ✅ Manipulate DOM of current page
 - ✅ Create visual overlays
-- ✅ Inject content scripts (same-origin)
+- ✅ Inject content scripts into frames of permitted hosts (how audio focus works)
 - ✅ Manage browser state
 
 Browser extensions cannot:
@@ -387,7 +359,7 @@ QuadTV is built on the principle:
 > **"Work within constraints, not against them."**
 
 Rather than fighting browser security or attempting unreliable workarounds:
-- We embrace manual audio control
+- We keep the in-tile script tiny and limited to `<video>.muted`
 - We focus on reliable visual grid layout
 - We persist user preferences locally
 - We provide simple, predictable behavior

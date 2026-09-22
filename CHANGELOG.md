@@ -5,6 +5,36 @@ All notable changes to QuadTV will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-09-22
+
+### Added
+- 🔊 **Audio focus** - one stream has sound, the rest are muted, and moving it is one action:
+  - Click a stream's number badge, press **1-4**, or use the **arrow keys**
+  - Stream 1 starts with audio; **Alt+M** still mutes everything
+  - Hold **Alt/Option** with the same keys when you have clicked inside a stream
+- **On-grid layout bar** - hover the handle at the top edge to switch layouts, see which stream has audio, open help, or exit, without the popup
+- **L** cycles layouts (Ctrl/Cmd+Space still works, but collides with Spotlight on macOS)
+- Hidden streams stay loaded and muted for 90 seconds so switching back is instant, then unload; they come back on the channel they were on
+- Audio focus follows: if the stream with sound gets hidden by a smaller layout, sound moves to stream 1
+- Layout changes made in-page are persisted so the popup shows the right selection
+- Build stamp (version, branch, commit, build time) in the popup footer, the `?` help overlay and the console
+
+### Fixed
+- Switching layouts from the popup while QuadTV was active silently did nothing
+- The 1+2 layout's large stream did not span both rows
+- Streams hidden by a smaller layout kept playing audio
+- Custom divider positions were not applied when switching into a layout
+- Option+M on macOS arrived as a special character and never matched
+
+### Changed
+- Audio is no longer manual. A small content script runs inside each stream (they share the tv.youtube.com origin) and owns that stream's video element, reverting the ad player's unmutes as they happen
+- Streams hidden by the layout you activate with are not loaded at all
+
+### Internal
+- New `content/frameAgent.js` injected with `all_frames`; parent and tiles talk over `postMessage` with an explicit origin
+- Regression tests now load the real `BackgroundController` and `UIManager` classes (146 tests)
+- ADR-005 records the frame agent decision; `docs/frame-agent.md` describes the protocol
+
 ## [0.3.9] - 2025-11-15
 
 ### Fixed

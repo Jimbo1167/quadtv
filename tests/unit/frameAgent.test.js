@@ -155,6 +155,8 @@ describe('FrameAgent keyboard forwarding', () => {
     expect(f.parent.postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'KEY', code: 'Digit1' }), ORIGIN);
     f.press({ key: 'µ', code: 'KeyM', altKey: true });
     expect(f.parent.postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'KEY', code: 'KeyM' }), ORIGIN);
+    f.press({ key: '¬', code: 'KeyL', altKey: true });
+    expect(f.parent.postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'KEY', code: 'KeyL' }), ORIGIN);
     f.agent.stop();
   });
 

@@ -27,6 +27,8 @@ class UIManager {
     this.activeAudioStream = null; // Track which stream has audio focus
     this.desiredMuted = {}; // streamIndex -> boolean, re-sent when a tile's agent reports READY
     this.frameStates = {}; // streamIndex -> { ready, url, muted, paused, hasVideo }
+    this.unloadTimers = {}; // streamIndex -> timeout id; hidden tiles unload after a grace period
+    this.toolbar = null;
 
     // Grid ratios for each layout (fr units)
     this.gridRatios = {
@@ -135,6 +137,13 @@ class UIManager {
       return true;
     }
 
+    // L (optionally with Alt) to cycle layouts; Ctrl/Cmd+Space collides with Spotlight on macOS
+    if ((key === 'l' || key === 'L') && !k.ctrlKey && !k.metaKey) {
+      console.log('🎹 Keyboard shortcut: Cycling layout');
+      this.cycleLayout();
+      return true;
+    }
+
     // Alt+M to toggle mute all streams
     if ((key === 'm' || key === 'M') && k.altKey) {
       console.log('🎹 Keyboard shortcut: Toggle mute all streams');
@@ -203,7 +212,7 @@ class UIManager {
    * @public
    */
   cycleLayout() {
-    const layouts = ['2x2', '1+2', '2-vertical'];
+    const layouts = UIManager.LAYOUT_ORDER;
     const currentIndex = layouts.indexOf(this.currentLayout);
     const nextIndex = (currentIndex + 1) % layouts.length;
     const nextLayout = layouts[nextIndex];
@@ -271,7 +280,7 @@ class UIManager {
       <h2 style="color: #ff0000; margin-top: 0;">🎬 Welcome to QuadTV!</h2>
       <div style="text-align: left; margin: 16px 0;">
         <h3>🎹 Keyboard Shortcuts:</h3>
-        <p><strong>Ctrl/Cmd + Space</strong> - Cycle layouts (2x2, 1+2, 2-vertical)</p>
+        <p><strong>L</strong> (or Ctrl/Cmd + Space) - Cycle layouts (2x2, 1+2, 2-vertical)</p>
         <p><strong>Arrow keys</strong> - Move audio focus around the grid</p>
         <p><strong>1-4</strong> - Give that stream audio focus</p>
         <p><strong>Alt + M</strong> - Mute/unmute all streams</p>
@@ -284,7 +293,10 @@ class UIManager {
         <p>Stream 1 starts with audio; the others start muted</p>
         <p>Use Alt+M to quickly mute/unmute everything</p>
 
-        <h3>📏 Resizable Grid (2x2 layout):</h3>
+        <h3>🧰 Layout bar:</h3>
+        <p>Hover the handle at the top edge to switch layouts, see which stream has audio, or exit</p>
+
+        <h3>📏 Resizable Grid:</h3>
         <p><strong>Drag dividers</strong> to resize streams</p>
         <p><strong>Double-click divider</strong> to reset to equal sizing</p>
         <p>Your custom sizing is saved automatically</p>
@@ -424,15 +436,101 @@ class UIManager {
     }
 
     this.quadTVContainer.appendChild(this.gridContainer);
+    this.toolbar = this.createToolbar();
+    this.quadTVContainer.appendChild(this.toolbar);
     document.body.appendChild(this.quadTVContainer);
 
     // Apply initial layout
     this.updateGridLayout(this.currentLayout);
+    this.peekToolbar();
 
     // Show onboarding help if first time user
     this.showOnboardingIfNeeded();
 
     console.log('📺 QuadTV grid created');
+  }
+
+  /**
+   * Build the on-grid layout bar. It sits in the top padding as a small
+   * handle and expands on hover, so switching layouts never needs the popup.
+   * @returns {HTMLElement}
+   * @private
+   */
+  createToolbar() {
+    const bar = document.createElement('div');
+    bar.className = 'quadtv-toolbar';
+
+    const handle = document.createElement('div');
+    handle.className = 'quadtv-toolbar-handle';
+    bar.appendChild(handle);
+
+    const body = document.createElement('div');
+    body.className = 'quadtv-toolbar-body';
+
+    this.toolbarLayoutButtons = {};
+    UIManager.LAYOUT_ORDER.forEach((layout) => {
+      const btn = document.createElement('button');
+      btn.className = 'quadtv-toolbar-btn quadtv-toolbar-layout';
+      btn.textContent = UIManager.LAYOUT_LABELS[layout];
+      btn.title = `Switch to ${UIManager.LAYOUT_LABELS[layout]} (L cycles)`;
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.setLayout(layout);
+      });
+      this.toolbarLayoutButtons[layout] = btn;
+      body.appendChild(btn);
+    });
+
+    const sep = document.createElement('span');
+    sep.className = 'quadtv-toolbar-sep';
+    body.appendChild(sep);
+
+    this.toolbarAudioLabel = document.createElement('span');
+    this.toolbarAudioLabel.className = 'quadtv-toolbar-audio';
+    body.appendChild(this.toolbarAudioLabel);
+
+    const help = document.createElement('button');
+    help.className = 'quadtv-toolbar-btn';
+    help.textContent = '?';
+    help.title = 'Help and shortcuts';
+    help.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.showOnboarding(); });
+    body.appendChild(help);
+
+    const exit = document.createElement('button');
+    exit.className = 'quadtv-toolbar-btn quadtv-toolbar-exit';
+    exit.textContent = 'Exit';
+    exit.title = 'Exit QuadTV (Esc)';
+    exit.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.messageBus.publish('QUADTV_DEACTIVATED'); });
+    body.appendChild(exit);
+
+    bar.appendChild(body);
+    return bar;
+  }
+
+  /** Reflect current layout and audio focus in the toolbar */
+  updateToolbar() {
+    if (!this.toolbar) return;
+    if (this.toolbarLayoutButtons) {
+      Object.entries(this.toolbarLayoutButtons).forEach(([layout, btn]) => {
+        btn.classList.toggle('active', layout === this.currentLayout);
+      });
+    }
+    if (this.toolbarAudioLabel) {
+      this.toolbarAudioLabel.textContent = this.activeAudioStream === null || this.activeAudioStream === undefined
+        ? '🔇 All muted'
+        : `🔊 Stream ${this.activeAudioStream + 1}`;
+    }
+  }
+
+  /** Show the toolbar briefly so it's discoverable, then let it collapse */
+  peekToolbar() {
+    if (!this.toolbar) return;
+    this.toolbar.classList.add('peek');
+    if (this.toolbarPeekTimer) clearTimeout(this.toolbarPeekTimer);
+    this.toolbarPeekTimer = setTimeout(() => {
+      if (this.toolbar) this.toolbar.classList.remove('peek');
+    }, UIManager.TOOLBAR_PEEK_MS);
   }
 
   createStreamContainer(index) {
@@ -528,8 +626,12 @@ class UIManager {
       this.quadTVContainer.remove();
       this.quadTVContainer = null;
       this.gridContainer = null;
+      this.toolbar = null;
       this.streams = [];
       this.iframes = [];
+      Object.values(this.unloadTimers).forEach(clearTimeout);
+      this.unloadTimers = {};
+      if (this.toolbarPeekTimer) clearTimeout(this.toolbarPeekTimer);
     }
   }
 
@@ -550,6 +652,9 @@ class UIManager {
     }
 
     this.updateGridLayout(layout);
+    this.peekToolbar();
+    // Let the content script persist it and tell the background/popup
+    this.messageBus.publish('LAYOUT_CHANGED', { layout });
     console.log(`✅ UI: Layout changed to ${layout}`);
   }
 
@@ -605,11 +710,18 @@ class UIManager {
         console.log(`📐 UI: Showing stream ${index}`);
       } else {
         stream.style.display = 'none';
-        this.unloadStream(index);
+        this.hideStream(index);
         console.log(`📐 UI: Hiding stream ${index}`);
       }
     });
 
+    // Don't leave the sound on a tile that just disappeared
+    if (this.activeAudioStream !== null && this.activeAudioStream !== undefined && this.activeAudioStream >= requiredStreams) {
+      console.log(`🎧 UI: Focused stream ${this.activeAudioStream} is hidden, moving audio to stream 1`);
+      this.setAudioFocus(0);
+    }
+
+    this.updateToolbar();
     console.log(`📐 UI: Grid layout updated to ${layout} with ${requiredStreams} streams`);
 
     // Update dividers for new layout
@@ -617,10 +729,27 @@ class UIManager {
   }
 
   /**
-   * Unload a hidden stream's iframe so it stops playing audio.
-   * Cross-origin rules block muting the player directly, so navigating the
-   * iframe to about:blank is the only reliable way to silence a hidden tile.
+   * A layout just hid this stream. Mute it right away (the frame agent makes
+   * that reliable) and keep it loaded for a grace period so switching back is
+   * instant. If it stays hidden, unload it to stop streaming in the background.
    *
+   * @param {number} index - Stream index
+   * @private
+   */
+  hideStream(index) {
+    const iframe = this.iframes[index];
+    if (!iframe || iframe.dataset.unloaded === 'true' || this.unloadTimers[index]) return;
+
+    this.setStreamMuted(index, true);
+    this.unloadTimers[index] = setTimeout(() => {
+      delete this.unloadTimers[index];
+      this.unloadStream(index);
+    }, UIManager.HIDDEN_UNLOAD_MS);
+    console.log(`🔇 UI: Hid stream ${index}, muted; unloading in ${UIManager.HIDDEN_UNLOAD_MS / 1000}s if still hidden`);
+  }
+
+  /**
+   * Navigate a hidden stream's iframe to about:blank so it stops streaming.
    * @param {number} index - Stream index
    * @private
    */
@@ -635,18 +764,27 @@ class UIManager {
   }
 
   /**
-   * Reload a previously unloaded stream's iframe when its tile becomes visible.
-   * The tile returns to the YouTube TV home page since the prior channel cannot
-   * be recovered from a cross-origin iframe.
+   * A layout just showed this stream. Cancel any pending unload; if it was
+   * already unloaded, reload it to the channel its agent last reported.
+   * It stays muted until the user gives it audio focus.
    *
    * @param {number} index - Stream index
    * @private
    */
   restoreStream(index) {
     const iframe = this.iframes[index];
-    if (!iframe || iframe.dataset.unloaded !== 'true') return;
+    if (!iframe) return;
+
+    if (this.unloadTimers[index]) {
+      clearTimeout(this.unloadTimers[index]);
+      delete this.unloadTimers[index];
+      console.log(`📺 UI: Stream ${index} back before unload, no reload needed`);
+    }
+
+    if (iframe.dataset.unloaded !== 'true') return;
 
     delete iframe.dataset.unloaded;
+    if (!(index in this.desiredMuted)) this.desiredMuted[index] = true;
     iframe.src = this.lastKnownUrl(index) || 'https://tv.youtube.com';
     console.log(`📺 UI: Reloaded stream ${index} to ${iframe.src}`);
   }
@@ -941,6 +1079,12 @@ class UIManager {
   static FRAME_NAME_PREFIX = 'quadtv-stream-';
   static FRAME_ORIGIN = 'https://tv.youtube.com';
 
+  static LAYOUT_ORDER = ['2x2', '1+2', '2-vertical'];
+  static LAYOUT_LABELS = { '2x2': '2×2', '1+2': '1+2', '2-vertical': '2 Vertical' };
+  // A hidden tile keeps playing muted for this long so switching back is instant, then unloads
+  static HIDDEN_UNLOAD_MS = 90 * 1000;
+  static TOOLBAR_PEEK_MS = 2500;
+
   static ARROW_DIRECTIONS = {
     ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down'
   };
@@ -1073,9 +1217,14 @@ class UIManager {
    * Set audio focus to a specific stream (mutes all others)
    */
   async setAudioFocus(streamIndex) {
-    const streamCount = this.getStreamCountForLayout(this.currentLayout);
+    // Every tile, visible or not: a hidden tile must never come back audible
+    const streamCount = Math.max(this.iframes.length, this.getStreamCountForLayout(this.currentLayout));
 
     console.log(`🎧 Setting audio focus to stream ${streamIndex}`);
+
+    // Record the new focus immediately so UI and layout logic see it at once
+    this.activeAudioStream = streamIndex;
+    this.updateToolbar();
 
     // Mute all streams first
     const mutePromises = [];
@@ -1102,7 +1251,9 @@ class UIManager {
    * Mute or unmute all streams
    */
   async muteAllStreams(shouldMute = true) {
-    const streamCount = this.getStreamCountForLayout(this.currentLayout);
+    const visibleCount = this.getStreamCountForLayout(this.currentLayout);
+    // Mute every tile; only unmute the visible ones
+    const streamCount = shouldMute ? Math.max(this.iframes.length, visibleCount) : visibleCount;
     const action = shouldMute ? 'Muting' : 'Unmuting';
 
     console.log(`🔇 ${action} all streams`);
@@ -1137,6 +1288,7 @@ class UIManager {
    * Update visual indicators for audio focus
    */
   updateAudioFocusIndicators() {
+    this.updateToolbar();
     const streams = document.querySelectorAll('.quadtv-stream');
 
     streams.forEach((stream, index) => {
