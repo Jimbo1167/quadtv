@@ -1,5 +1,42 @@
 # Notes for AMO Reviewers
 
+## Paste-ready version (for the "Notes to Reviewer" field)
+
+```
+QuadTV 1.0.0 - notes for the reviewer
+
+WHAT IT DOES
+Multi-stream viewing for YouTube TV (tv.youtube.com). It replaces the page with a grid of 2-4 iframes, each loading tv.youtube.com, so a user can watch several channels at once. One stream has audio; the others are muted.
+
+TESTING
+A YouTube TV subscription is required to see actual streams. Without one you can still verify: the extension loads, the toolbar icon only enables on tv.youtube.com, the popup works, the grid of iframes is created on activation, no external requests are made, and storage holds only layout/grid-size settings.
+
+With a subscription: activate from the toolbar icon, switch layouts from the popup or the bar at the top edge of the grid, drag the dividers, then click a stream's number badge or press 1-4 / arrows to move the sound. Esc exits.
+
+PERMISSIONS
+- activeTab, tabs: find the active tab and message the content script; check the URL is tv.youtube.com before activating.
+- storage: layout preference and divider ratios. Local only.
+- Host permission *://tv.youtube.com/*: the only site the extension runs on.
+- data_collection_permissions: none. Nothing is collected or transmitted.
+
+WHY ONE CONTENT SCRIPT USES all_frames
+The stream tiles are iframes that load tv.youtube.com, the same origin as the page. content/frameAgent.js is declared with all_frames: true so it can run inside those tiles. It exits immediately unless the frame's window.name starts with "quadtv-stream-", which only the grid sets, so it never runs in YouTube TV's own frames or when QuadTV is inactive. Inside a tile it does three things: sets .muted on the tile's <video> element, reports the tile's current tv.youtube.com URL so a hidden tile can be restored later, and forwards Alt-modified shortcut keys to the parent. It does not navigate, read account data, or touch the DOM beyond <video> elements.
+
+MESSAGING
+Top frame and tiles talk over window.postMessage with targetOrigin https://tv.youtube.com. Both sides check event.origin and a "source" tag; the parent also checks event.source against the tile's contentWindow. Message types: SET_MUTED, GET_STATE (parent -> tile); READY, STATE, URL, KEY (tile -> parent). Nothing leaves the tab. Popup/background/content use runtime and tabs messaging only.
+
+CODE
+Vanilla JavaScript, no bundler, no minification, no third-party code, no remote resources. shared/buildInfo.js is generated at build time and holds the version, git commit and build timestamp. Source: https://github.com/Jimbo1167/quadtv, tag v1.0.0. Reproduce: git checkout v1.0.0 && ./build.sh (only buildInfo.js differs, by its timestamp). 146 unit/integration tests in the repo (not in the package).
+
+KNOWN QUIRKS (documented in LIMITATIONS.md)
+YouTube TV's own speaker icon inside a muted tile may show it unmuted; the extension's badge is the source of truth. YouTube TV's ad player unmutes at ad boundaries; the frame agent reverts it on volumechange.
+
+Contact: https://github.com/Jimbo1167/quadtv/issues
+```
+
+---
+
+
 ## Extension Overview
 
 **QuadTV** is a Firefox extension that enables multi-stream viewing for YouTube TV (tv.youtube.com). It allows users to watch up to 4 channels simultaneously in customizable layouts.
