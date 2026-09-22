@@ -306,3 +306,92 @@
     padding: 2px 6px;
   }
 }
+
+/* On-grid layout bar: a handle in the top padding that expands on hover */
+.quadtv-toolbar {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: Arial, sans-serif;
+}
+
+.quadtv-toolbar-handle {
+  width: 56px;
+  height: 6px;
+  margin-top: 1px;
+  border-radius: 0 0 4px 4px;
+  background: rgba(255, 255, 255, 0.35);
+  transition: background 0.2s ease;
+}
+
+.quadtv-toolbar:hover .quadtv-toolbar-handle,
+.quadtv-toolbar.peek .quadtv-toolbar-handle {
+  background: #ff0000;
+}
+
+.quadtv-toolbar-body {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin-top: 2px;
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.quadtv-toolbar:hover .quadtv-toolbar-body,
+.quadtv-toolbar.peek .quadtv-toolbar-body {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.quadtv-toolbar-btn {
+  background: #333;
+  border: none;
+  border-radius: 4px;
+  color: #e8eaed;
+  font-size: 13px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.quadtv-toolbar-btn:hover {
+  background: #555;
+}
+
+.quadtv-toolbar-layout.active {
+  background: #ff0000;
+  color: #fff;
+}
+
+.quadtv-toolbar-exit {
+  background: #222;
+  color: #bbb;
+}
+
+.quadtv-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 4px;
+}
+
+.quadtv-toolbar-audio {
+  color: #ccc;
+  font-size: 12px;
+  min-width: 90px;
+  text-align: center;
+}

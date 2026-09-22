@@ -60,14 +60,14 @@ Current permissions in manifest.json:
   - How to change layouts
   - How to resize streams
   - How to reset grid sizing
-  - Keyboard shortcuts (Ctrl+Shift+Q)
+  - Keyboard shortcuts (Esc, Ctrl/Cmd+Space, 1-4, arrows, Alt+M, ?)
 
 - [ ] **Permissions Explanation**: Clear justification for each permission
 
 - [ ] **Known Limitations**:
   - Works only on tv.youtube.com
   - Requires YouTube TV subscription
-  - Cannot control audio in iframes (cross-origin restriction)
+  - YouTube TV's own speaker icon may not reflect QuadTV's mute; ad breaks cause a brief blip
 
 ### 6. Code Quality & Review
 

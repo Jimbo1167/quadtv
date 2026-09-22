@@ -72,7 +72,10 @@ QuadTV includes powerful keyboard shortcuts for quick control:
 | Shortcut | Action | Description |
 |----------|--------|-------------|
 | **Esc** | Exit QuadTV | Returns to normal YouTube TV view |
-| **Ctrl+Space** (Mac: **Cmd+Space**) | Cycle Layouts | Rotates through 2x2 → 1+2 → 2-Vertical → 2x2 |
+| **L** | Cycle Layouts | Rotates through 2x2 → 1+2 → 2-Vertical → 2x2 |
+| **Ctrl+Space** (Mac: **Cmd+Space**) | Cycle Layouts | Same as L (Spotlight may grab Cmd+Space on Mac) |
+| **1** – **4** | Audio Focus | Give that stream the sound, mute the others |
+| **Arrow keys** | Move Audio Focus | Move the sound to the neighbouring stream |
 | **Alt+M** | Mute All Streams | Quickly mute all streams at once |
 | **?** | Show Help | Display the onboarding tutorial overlay |
 
@@ -81,6 +84,7 @@ QuadTV includes powerful keyboard shortcuts for quick control:
 - Shortcuts only work when QuadTV is active
 - Shortcuts are **disabled** when you're typing in a text field
 - `Ctrl+Space` on Mac uses `Cmd+Space` (system spotlight may override)
+- **Clicked inside a stream?** Keys then go to YouTube TV. Hold **Alt** (Option on Mac) with the arrows, 1–4 or M and QuadTV still gets them. Plain keys keep driving YouTube TV.
 
 ---
 
@@ -126,7 +130,9 @@ QuadTV offers three customizable layouts:
 3. Layout changes immediately
 
 **Method 2: Keyboard**
-- Press `Ctrl+Space` (or `Cmd+Space` on Mac) to cycle through layouts
+- Hover the small handle at the top edge of the grid and pick a layout from the bar
+- Press `L` (or `Ctrl+Space`) to cycle through layouts
+- A stream hidden by a smaller layout stays muted in the background for 90 seconds, so switching back is instant; after that it reloads on the same channel
 
 ---
 
@@ -164,26 +170,24 @@ If you want to restore the original proportions:
 
 ## Audio Control
 
-### Important: Manual Audio Control
+### One Stream Has Sound
 
-Due to browser security restrictions, QuadTV **cannot** automatically control audio within YouTube TV iframes. You must manually manage audio:
+When you activate QuadTV, **stream 1 has audio and the others are muted**. The stream with sound shows a red glow. Moving the sound is one action:
 
-### How to Control Audio
+- **Click the number badge** in the top-right corner of a stream
+- **Press 1, 2, 3 or 4**
+- **Use the arrow keys** to move to the neighbouring stream
+- **Alt+M** mutes everything (press it again, or pick a stream, to bring sound back)
 
-**For Each Stream:**
-1. Click inside the stream you want to hear
-2. Use YouTube TV's native volume controls in that stream
-3. Mute other streams manually if needed
+### After Clicking Inside a Stream
 
-**Quick Mute All:**
-- Press `Alt+M` to mute all streams at once
-- Then unmute only the stream you want to hear
+Once you click inside a stream (to change channel, for example), your keystrokes go to YouTube TV. Hold **Alt** (Option on Mac) with the same keys and QuadTV still moves the sound. Plain arrows keep working YouTube TV's own controls.
 
-### Why Manual Control?
+### Things That Look Odd But Are Fine
 
-YouTube TV runs inside iframes, which are cross-origin (different domains from QuadTV). Browser security prevents extensions from controlling audio/video in cross-origin iframes. This is a security feature, not a bug.
-
-**Trade-off**: Manual control means QuadTV stays lightweight, secure, and reliable.
+- **YouTube TV's speaker icon** inside a muted stream may still show it as unmuted. Trust the QuadTV badge and glow.
+- **Ad breaks** briefly try to unmute a stream. QuadTV puts it back within a moment.
+- **A stream that was hidden** (by switching to a smaller layout) comes back on the channel it was on, still muted.
 
 ---
 
@@ -194,7 +198,7 @@ YouTube TV runs inside iframes, which are cross-origin (different domains from Q
 **Game Day Setup**:
 - Use **2x2** for monitoring 4 games simultaneously
 - Resize the game you care most about to be larger
-- Mute all, then unmute your primary game
+- Press its number, or arrow over to it, when a big play is coming
 - Quick-check scores by glancing at the grid
 
 ### 📰 News Monitoring
@@ -202,7 +206,7 @@ YouTube TV runs inside iframes, which are cross-origin (different domains from Q
 **Multi-Network Coverage**:
 - Use **1+2** with main network in large stream
 - Secondary networks in smaller streams for comparison
-- Unmute primary, but watch for breaking news visually
+- Keep the sound on the main network and jump with the arrow keys when a smaller one shows breaking news
 
 ### 🎬 Channel Surfing
 
@@ -261,10 +265,16 @@ YouTube TV runs inside iframes, which are cross-origin (different domains from Q
 
 ### Audio Issues
 
-**Remember:**
-- QuadTV cannot control audio automatically
-- You must manually unmute the stream you want to hear
-- Use `Alt+M` to mute all, then unmute your preferred stream
+**No sound anywhere?**
+- Press `1` (or click stream 1's badge). `Alt+M` may have muted everything.
+- If you clicked inside a stream, hold `Alt` with the key, or click a badge.
+
+**Sound coming from two streams?**
+- Click the badge of the stream you want. QuadTV re-asserts the mute on the others.
+- Ad breaks can cause a brief blip; it should settle within a second.
+
+**Speaker icon inside a stream looks wrong?**
+- YouTube TV's own icon doesn't know about QuadTV. The badge and red glow are correct.
 
 ### Performance Issues
 
@@ -306,9 +316,9 @@ All data stays local on your device. No analytics, no tracking, no external serv
 
 **Not yet.** Currently Firefox-only. Chrome/Edge support may come in future versions.
 
-### Why can't QuadTV auto-switch audio between streams?
+### How does QuadTV control audio inside the streams?
 
-Browser security (CORS - Cross-Origin Resource Sharing) prevents extensions from controlling content inside iframes from different domains. This is a security feature protecting your data.
+Each stream is a tv.youtube.com frame, the same site as the page, so QuadTV runs a tiny script inside each one that only mutes or unmutes that stream's video. It doesn't read anything about your account or what you're watching, and it never leaves the tab.
 
 ### How much bandwidth does QuadTV use?
 
@@ -367,8 +377,10 @@ Print or bookmark this for easy reference:
 ╠══════════════════════════════════════════════════╣
 ║ Activate/Deactivate  │ Toolbar icon             ║
 ║ Exit QuadTV          │ Esc                      ║
-║ Cycle Layouts        │ Ctrl+Space (Cmd+Space)   ║
+║ Switch Layouts       │ Top-edge bar / L         ║
+║ Audio Focus          │ 1-4 / arrows / badge     ║
 ║ Mute All             │ Alt+M                    ║
+║ ...inside a stream   │ Hold Alt with the key    ║
 ║ Show Help            │ ?                        ║
 ║ Resize Streams       │ Drag dividers            ║
 ║ Reset Sizing         │ Popup → "Reset Grid"     ║

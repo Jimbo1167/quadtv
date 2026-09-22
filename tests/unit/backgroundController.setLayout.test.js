@@ -64,4 +64,14 @@ describe('BackgroundController SET_LAYOUT (real implementation)', () => {
       expect(browser.tabs.sendMessage).toHaveBeenLastCalledWith(activeTab.id, { type: 'SET_LAYOUT', layout });
     }
   });
+
+  test('LAYOUT_CHANGED from the page updates the background copy used by GET_STATE', async () => {
+    await controller.handleMessage({ type: 'LAYOUT_CHANGED', layout: '2-vertical' }, { tab: activeTab }, sendResponse);
+    expect(controller.currentLayout).toBe('2-vertical');
+    expect(sendResponse).toHaveBeenCalledWith({ success: true });
+
+    const state = jest.fn();
+    await controller.handleMessage({ type: 'GET_STATE' }, {}, state);
+    expect(state).toHaveBeenCalledWith(expect.objectContaining({ currentLayout: '2-vertical' }));
+  });
 });

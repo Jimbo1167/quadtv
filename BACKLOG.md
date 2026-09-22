@@ -1,6 +1,11 @@
 # QuadTV Development Backlog
 
-## 🎉 Latest Release - v0.3.9
+## 🎉 Latest Release - v1.0.0
+
+**Release Date**: 2026-09-22
+**Status**: Audio focus via per-tile frame agent, on-grid layout bar, layout switching fixes (see CHANGELOG.md)
+
+## Previous Release - v0.3.9
 
 **Release Date**: 2025-11-15
 **Status**: Stable release with resizable grid dividers

@@ -32,14 +32,12 @@ Without `activeTab`, QuadTV cannot inject its user interface into the YouTube TV
 - Check if the current tab is a YouTube TV page (`tv.youtube.com`)
 - Prevent activation on non-YouTube TV pages
 - Update the browser action icon badge (✓ when active, ❌ when not on YouTube TV)
-- Query active tab to send messages between popup and content script
-- Toggle QuadTV on/off via keyboard shortcut (Ctrl+Shift+Q)
+- Query active tab to send messages between popup and content script (the popup has no tab of its own)
 
 **Why It's Needed:**
 Without `tabs`, QuadTV cannot:
 - Verify the user is on a YouTube TV page before activating
 - Provide visual feedback about extension state in the toolbar
-- Support keyboard shortcuts
 - Communicate between extension components
 
 **Data Access:**
@@ -147,3 +145,16 @@ Every permission usage is documented and auditable in the codebase.
 
 If you have questions about permissions or privacy, please open an issue:
 https://github.com/[your-username]/quadtv/issues
+
+---
+
+## Content Script Scope
+
+Two content-script declarations share the `tv.youtube.com` host permission:
+
+| Script | Frames | Purpose |
+|--------|--------|---------|
+| `messageBus.js`, `layoutEngine.js`, `storageManager.js`, `uiManager.js`, `contentScript.js` | Top frame only | Build and manage the grid |
+| `frameAgent.js` | All frames (`all_frames: true`) | Mute/unmute the `<video>` inside a QuadTV tile, report its URL, forward Alt-modified shortcut keys |
+
+`frameAgent.js` checks `window.name` for the `quadtv-stream-` prefix that the grid assigns and does nothing in any other frame. No additional permission is required: the tiles load `tv.youtube.com`, which is already the only permitted host. Messages between the top frame and its tiles use `window.postMessage` with an explicit origin and never leave the tab.

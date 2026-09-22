@@ -193,6 +193,12 @@ class BackgroundController {
         }
         break;
 
+      case 'LAYOUT_CHANGED':
+        // Changed in-page (toolbar / keyboard); keep our copy in sync for GET_STATE
+        this.currentLayout = message.layout || this.currentLayout;
+        sendResponse({ success: true });
+        break;
+
       case 'UI_STATE_CHANGED':
         console.log('📊 Background: UI_STATE_CHANGED, isActive:', message.isActive);
         this.isActive = message.isActive;

@@ -1,6 +1,6 @@
 # QuadTV
 
-A Firefox extension that enables multi-stream viewing for YouTube TV, transforming the web interface into a visual grid of iframe streams with manual audio control and customizable layouts.
+A Firefox extension that enables multi-stream viewing for YouTube TV, transforming the web interface into a visual grid of iframe streams with one-action audio focus and customizable layouts.
 
 ## Features
 
@@ -9,10 +9,13 @@ A Firefox extension that enables multi-stream viewing for YouTube TV, transformi
   - **2x2 Grid** - 4 equal streams
   - **1+2 Layout** - 1 large stream + 2 smaller streams
   - **2-Vertical** - 2 side-by-side streams
+- **On-Grid Layout Bar**: Hover the handle at the top edge to switch layouts, see which stream has audio, or exit
 - **Resizable Grid Dividers**: Drag dividers to customize stream sizes, settings auto-save
+- **Audio Focus**: One stream has sound, the rest are muted. Click a stream's number badge, press **1-4**, or use the **arrow keys** to move it. Hold **Alt/Option** with the same keys after clicking inside a stream.
 - **Keyboard Shortcuts**:
   - **Esc** - Exit QuadTV mode
-  - **Ctrl/Cmd+Space** - Cycle through layouts
+  - **L** (or Ctrl/Cmd+Space) - Cycle through layouts
+  - **1-4 / Arrow keys** - Move audio focus
   - **Alt+M** - Mute all streams
   - **?** - Show help overlay
 - **First-Time Tutorial**: Onboarding overlay with tips and shortcuts
@@ -96,11 +99,11 @@ The extension will be available on the Firefox Add-ons store once released.
 
 1. Navigate to [YouTube TV](https://tv.youtube.com)
 2. Click the QuadTV toolbar icon to activate multi-view mode
-3. Choose your preferred layout from the popup (2x2, 1+2, or 2-Vertical)
+3. Choose your preferred layout from the popup or the bar at the top edge of the grid (2x2, 1+2, or 2-Vertical); `L` cycles
 4. Each iframe displays YouTube TV - navigate to different channels in each stream
 5. **Drag dividers** to resize streams to your preference
 6. Click **Reset Grid Sizing** in the popup to restore default proportions
-7. Control audio manually within each stream (click volume in each iframe)
+7. Stream 1 has sound; click another stream's number badge, press 1-4, or use the arrow keys to move it
 8. Press **Esc** to exit QuadTV mode
 
 ## License

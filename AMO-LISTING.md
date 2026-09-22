@@ -11,9 +11,9 @@ This document contains the official listing content for Firefox Add-ons (AMO).
 
 ## Short Description (132 characters max)
 
-Watch multiple YouTube TV channels simultaneously with customizable multi-view layouts and resizable streams.
+Watch multiple YouTube TV channels at once with customizable layouts, resizable streams and one-key audio focus.
 
-**Character count:** 123/132 ✓
+**Character count:** 112/132 ✓
 
 ---
 
@@ -42,9 +42,16 @@ QuadTV lets you watch up to 4 YouTube TV channels simultaneously in a single bro
 - Settings persist across sessions
 - Reset to defaults with one click
 
+**🔊 Audio Focus**
+- One stream has sound, the rest stay muted - no hunting for volume buttons
+- Click a stream's number badge, press 1-4, or use the arrow keys to move audio
+- Alt+M mutes everything
+- Ad breaks can't sneak a muted stream back on
+
 **🎯 Simple Controls**
 - Click toolbar icon to activate/deactivate
-- Easy layout switching from popup menu
+- Switch layouts from the bar at the top of the grid, the popup, or by pressing L
+- Switching back to a bigger layout is instant; hidden streams come back on the same channel
 - Visual indicators show active state
 - One-click grid reset
 
@@ -60,8 +67,9 @@ QuadTV lets you watch up to 4 YouTube TV channels simultaneously in a single bro
 2. Click the QuadTV icon in your toolbar
 3. Select your preferred layout (2x2, 1+2, or 2-vertical)
 4. Each stream loads in its own iframe - navigate to different channels independently
-5. Drag dividers to resize streams to your preference
-6. Click Reset Grid Sizing to return to defaults
+5. Stream 1 has sound; click another stream's number badge (or press 1-4 / arrows) to move it
+6. Drag dividers to resize streams to your preference
+7. Click Reset Grid Sizing to return to defaults
 
 ### Perfect For
 
@@ -83,6 +91,7 @@ QuadTV lets you watch up to 4 YouTube TV channels simultaneously in a single bro
 ✅ Three distinct layout options
 ✅ Resizable stream dividers with drag-and-drop
 ✅ Persistent settings and preferences
+✅ One-action audio focus (badge, 1-4, arrow keys)
 ✅ Grid reset functionality
 ✅ Visual status indicators
 ✅ Clean, intuitive interface
@@ -91,7 +100,8 @@ QuadTV lets you watch up to 4 YouTube TV channels simultaneously in a single bro
 
 - Only works on tv.youtube.com (YouTube TV subscription required)
 - Each stream operates independently (no synchronized playback)
-- Audio control is per-stream via YouTube TV's native controls
+- YouTube TV's own speaker icon may not reflect QuadTV's mute; the stream badge is the source of truth
+- After clicking inside a stream, hold Alt/Option with the shortcut keys
 
 ### Privacy & Permissions
 
@@ -142,14 +152,21 @@ youtube, tv, streaming, multi-view, quad, split-screen, sports, news, live-tv, p
 
 ## Version Notes Template
 
-### Version 1.0.0 (Initial Release)
+### Version 1.0.0
 
 **Features:**
 - Multi-stream viewing with 3 layout options (2x2, 1+2, 2-vertical)
+- Audio focus: one stream has sound; move it by clicking a badge, pressing 1-4, or the arrow keys
+- On-grid layout bar (hover the top edge) and L to cycle layouts
 - Resizable stream dividers with drag-and-drop
 - Persistent layout preferences
 - Grid reset functionality
 - Visual status indicators
+
+**Fixes since 0.3.9:**
+- Layout switching from the popup while active
+- 1+2 layout's large stream now spans both rows
+- Streams hidden by a smaller layout no longer keep playing audio
 
 **Privacy:**
 - No data collection
@@ -229,8 +246,8 @@ A: Click the "Reset Grid Sizing" button in the popup menu.
 **Q: Does it work on Chrome/Edge/Safari?**
 A: Currently QuadTV is only available for Firefox. Other browsers may be supported in the future.
 
-**Q: Can I control audio for each stream separately?**
-A: Each stream has independent audio controls through YouTube TV's native player controls.
+**Q: How does audio work with four streams?**
+A: One stream has sound and the rest are muted. Click a stream's number badge, press 1-4, or use the arrow keys to move the sound. Alt+M mutes everything. If you have clicked inside a stream, hold Alt (Option on Mac) with the same keys.
 
 **Q: Is it open source?**
 A: Yes! View the source code at [GitHub URL]

@@ -16,7 +16,7 @@
  * Protocol (tile -> parent):  { source: 'quadtv-frame', index, type: 'READY'|'STATE'|'URL'|'KEY', ... }
  *
  * Keyboard: keydown events inside a tile never reach the top frame, so the
- * agent forwards Alt-modified shortcuts (arrows, 1-4, M) as KEY messages.
+ * agent forwards Alt-modified shortcuts (arrows, 1-4, M, L) as KEY messages.
  * Plain keys are left alone so YouTube TV's own navigation keeps working.
  *
  * @class
@@ -26,7 +26,7 @@ class FrameAgent {
   static ORIGIN = 'https://tv.youtube.com';
   static FORWARDED_CODES = new Set([
     'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
-    'Digit1', 'Digit2', 'Digit3', 'Digit4', 'KeyM'
+    'Digit1', 'Digit2', 'Digit3', 'Digit4', 'KeyM', 'KeyL'
   ]);
 
   /**

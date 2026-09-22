@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "QuadTV",
-  "version": "0.3.9",
+  "version": "1.0.0",
   "description": "Multi-stream viewing for YouTube TV",
 
   "permissions": [
