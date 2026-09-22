@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Streams hidden by the layout you activate with are not loaded at all
 
 ### Internal
+- Manifest declares `data_collection_permissions: { required: ["none"] }` (required by AMO since 2025-11 for new extensions and for all extensions in 2026)
 - New `content/frameAgent.js` injected with `all_frames`; parent and tiles talk over `postMessage` with an explicit origin
 - Regression tests now load the real `BackgroundController` and `UIManager` classes (146 tests)
 - ADR-005 records the frame agent decision; `docs/frame-agent.md` describes the protocol

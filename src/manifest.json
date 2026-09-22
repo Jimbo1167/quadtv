@@ -4,6 +4,14 @@
   "version": "1.0.0",
   "description": "Multi-stream viewing for YouTube TV",
 
+  "browser_specific_settings": {
+    "gecko": {
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
+
   "permissions": [
     "activeTab",
     "tabs",

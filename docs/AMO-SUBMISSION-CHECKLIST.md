@@ -191,3 +191,20 @@ Mozilla may request source code review:
 - **Estimated Time to Prepare**: 4-8 hours
 - **Review Time**: 1-5 business days
 - **License Decision**: Recommend MIT for open source project
+
+---
+
+## 1.0.0 Submission Steps (2026-09-22)
+
+1. `git checkout v1.0.0 && ./build.sh` → `dist/quadtv-1.0.0.zip` (36 KB). Or use the zip already built from the tag.
+2. Sign in at https://addons.mozilla.org/developers/ .
+   - Existing listing: open the add-on → **Upload New Version**.
+   - No listing yet: **Submit a New Add-on** → "On this site" (listed).
+3. Upload the zip. The validator must show 0 errors. The manifest already declares `data_collection_permissions: none`, which AMO requires.
+4. Answer "Do you need to submit source code?" **No** — the zip is unminified, unbundled source (`REVIEWER-NOTES.md` says how to reproduce it).
+5. Version notes: paste **Version 1.0.0** from `AMO-LISTING.md`.
+6. **Notes to reviewer**: paste `REVIEWER-NOTES.md`, and add a line up front that a YouTube TV subscription is needed to see streams, plus why one content script uses `all_frames`.
+7. Listing (first submission only, otherwise just check it): name, summary (`Short Description`), description (`Full Description`), categories Video & Audio / Entertainment, tags, support URL and homepage (fill in the real GitHub URLs), license MIT, privacy policy (paste `PRIVACY.md`).
+8. Screenshots: take fresh ones on master — 2x2 with the top bar showing, popup, 1+2, 2 Vertical, and one with a stream badge/red glow. At least 640×480, PNG.
+9. Submit. Listed submissions are auto-approved after validation and then human-reviewed; the `all_frames` script will likely draw a question, which `REVIEWER-NOTES.md` answers.
+10. After approval: update `README.md` "Coming Soon" with the AMO link, and add `browser_specific_settings.gecko.id` from the listing to the manifest for future uploads.

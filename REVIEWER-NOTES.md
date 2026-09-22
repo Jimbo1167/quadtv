@@ -120,6 +120,9 @@ QuadTV does **not**:
 - ❌ Store personal information
 - ❌ Access YouTube account data
 
+### Manifest declaration
+`browser_specific_settings.gecko.data_collection_permissions.required` is `["none"]`, per Mozilla's data collection consent policy. Nothing is collected or transmitted.
+
 ### Local Storage Only
 QuadTV stores **locally only** (never transmitted):
 - Layout preference (e.g., "2x2", "1+2", "2-vertical")
