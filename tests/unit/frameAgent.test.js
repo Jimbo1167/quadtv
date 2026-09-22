@@ -173,3 +173,58 @@ describe('FrameAgent keyboard forwarding', () => {
     f.agent.stop();
   });
 });
+
+describe('FrameAgent mute enforcement against the ad player', () => {
+  function startWithHandlers(videos) {
+    const f = makeFrame({ videos });
+    f.agent.start();
+    const handler = (type) => f.doc.addEventListener.mock.calls.find(c => c[0] === type)[1];
+    return { ...f, handler };
+  }
+
+  test('reverts an unmute the moment volumechange fires', () => {
+    const video = makeVideo();
+    const f = startWithHandlers([video]);
+    f.dispatch({ source: 'quadtv', type: 'SET_MUTED', muted: true });
+    expect(video.muted).toBe(true);
+
+    video.muted = false; // ad player unmutes
+    f.handler('volumechange')({ target: video });
+
+    expect(video.muted).toBe(true);
+    f.agent.stop();
+  });
+
+  test('does not fight volume changes on the focused (unmuted) tile', () => {
+    const video = makeVideo();
+    const f = startWithHandlers([video]);
+    f.dispatch({ source: 'quadtv', type: 'SET_MUTED', muted: false });
+
+    video.muted = false;
+    f.handler('volumechange')({ target: video });
+    expect(video.muted).toBe(false);
+    f.agent.stop();
+  });
+
+  test('the periodic tick re-asserts mute on a video that slipped through', () => {
+    const video = makeVideo();
+    const f = startWithHandlers([video]);
+    f.dispatch({ source: 'quadtv', type: 'SET_MUTED', muted: true });
+
+    video.muted = false;
+    f.agent.tick();
+
+    expect(video.muted).toBe(true);
+    f.agent.stop();
+  });
+
+  test('ignores volumechange from non-media targets and before any instruction', () => {
+    const video = makeVideo();
+    const f = startWithHandlers([video]);
+
+    f.handler('volumechange')({ target: {} });
+    f.handler('volumechange')({ target: video });
+    expect(video.muted).toBe(false);
+    f.agent.stop();
+  });
+});

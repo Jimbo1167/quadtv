@@ -38,6 +38,15 @@ instead and lets it own the tile's `<video>` directly.
 6. Click inside a tile, then press Alt+Right / Alt+Down. Focus should still
    move. Plain arrows inside the tile should still drive YouTube TV.
 
+## Ad breaks
+
+YouTube TV's ad player flips the video element back to unmuted at ad
+boundaries (the `pagead/interaction` beacons in the console with `mut=0` are
+its viewability reports, and they're harmless CORS noise). The agent listens
+for `volumechange` in the capture phase and reverts the change synchronously,
+and a once-a-second tick re-asserts the state as a safety net. YouTube TV's
+own mute icon may still show unmuted; the tile badge is the source of truth.
+
 ## Known risks
 
 - Firefox's autoplay policy may pause a video that is unmuted without a user
