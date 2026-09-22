@@ -71,8 +71,7 @@ class UIManager {
   }
 
   /**
-   * Handle keyboard shortcuts for QuadTV
-   * Supports: Esc (exit), Ctrl/Cmd+Space (cycle layouts), Alt+M (mute all), ? (help)
+   * Handle keyboard shortcuts for QuadTV in the top frame
    * Ignores shortcuts when user is typing in text fields
    *
    * @param {KeyboardEvent} event - The keyboard event
@@ -86,50 +85,116 @@ class UIManager {
       return;
     }
 
-    const key = event.key;
+    const handled = this.handleShortcut(UIManager.normalizeKey(event));
+    if (handled) event.preventDefault();
+  }
+
+  /**
+   * Normalize a key event so the same shortcut works with or without Alt.
+   * On macOS, Option changes event.key (Option+M gives "µ"), so letters and
+   * digits are derived from event.code when a modifier is held.
+   *
+   * @param {{key: string, code?: string, altKey?: boolean, ctrlKey?: boolean, metaKey?: boolean}} e
+   * @returns {{key: string, altKey: boolean, ctrlKey: boolean, metaKey: boolean}}
+   */
+  static normalizeKey(e) {
+    let key = e.key;
+    const code = e.code || '';
+    if (e.altKey || e.ctrlKey || e.metaKey) {
+      if (/^Digit[0-9]$/.test(code)) key = code.slice(5);
+      else if (/^Key[A-Z]$/.test(code)) key = code.slice(3).toLowerCase();
+    }
+    return { key, altKey: !!e.altKey, ctrlKey: !!e.ctrlKey, metaKey: !!e.metaKey };
+  }
+
+  /**
+   * Run a shortcut. Shared by the top-frame keydown handler and keys forwarded
+   * from tiles by the frame agent (those always carry Alt).
+   * Supports: Esc (exit), Ctrl/Cmd+Space (cycle layouts), Alt+M (mute all),
+   * 1-4 (audio focus), arrows (move audio focus), ? (help)
+   *
+   * @param {{key: string, altKey: boolean, ctrlKey: boolean, metaKey: boolean}} k
+   * @returns {boolean} whether the key was handled
+   * @public
+   */
+  handleShortcut(k) {
+    if (!this.isActive) return false;
+    const { key } = k;
 
     // ESC to deactivate QuadTV
     if (key === 'Escape') {
-      event.preventDefault();
       console.log('🎹 Keyboard shortcut: Deactivating QuadTV');
       this.messageBus.publish('QUADTV_DEACTIVATED');
-      return;
+      return true;
     }
 
     // Space to toggle between layouts
-    if (key === ' ' && (event.ctrlKey || event.metaKey)) {
-      event.preventDefault();
+    if (key === ' ' && (k.ctrlKey || k.metaKey)) {
       console.log('🎹 Keyboard shortcut: Cycling layout');
       this.cycleLayout();
-      return;
+      return true;
     }
 
     // Alt+M to toggle mute all streams
-    if ((key === 'm' || key === 'M') && event.altKey) {
-      event.preventDefault();
+    if ((key === 'm' || key === 'M') && k.altKey) {
       console.log('🎹 Keyboard shortcut: Toggle mute all streams');
       this.toggleMuteAllStreams();
-      return;
+      return true;
     }
 
-    // 1-4 to give a stream audio focus
-    if (/^[1-4]$/.test(key) && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    // 1-4 (optionally with Alt) to give a stream audio focus
+    if (/^[1-4]$/.test(key) && !k.ctrlKey && !k.metaKey) {
       const index = Number(key) - 1;
       if (index < this.getStreamCountForLayout(this.currentLayout)) {
-        event.preventDefault();
         console.log(`🎹 Keyboard shortcut: Audio focus to stream ${index + 1}`);
         this.setAudioFocus(index);
+        return true;
       }
-      return;
+      return false;
+    }
+
+    // Arrow keys (optionally with Alt) to move audio focus around the grid
+    const direction = UIManager.ARROW_DIRECTIONS[key];
+    if (direction && !k.ctrlKey && !k.metaKey) {
+      console.log(`🎹 Keyboard shortcut: Move audio focus ${direction}`);
+      this.moveAudioFocus(direction);
+      return true;
     }
 
     // ? to show help
     if (key === '?' || key === '/') {
-      event.preventDefault();
       console.log('🎹 Keyboard shortcut: Showing help');
       this.showOnboarding();
-      return;
+      return true;
     }
+
+    return false;
+  }
+
+  /**
+   * Move audio focus to the neighbouring stream in a direction, using the
+   * spatial arrangement of the current layout. With two rows or columns the
+   * opposite directions both toggle, which is what users expect.
+   *
+   * @param {'left'|'right'|'up'|'down'} direction
+   * @returns {number|null} the stream that received focus, or null if no neighbour
+   * @public
+   */
+  moveAudioFocus(direction) {
+    const map = UIManager.AUDIO_NEIGHBOURS[this.currentLayout] || UIManager.AUDIO_NEIGHBOURS['2x2'];
+    const from = this.activeAudioStream;
+
+    // Nothing focused yet (e.g. after Alt+M): start at stream 1
+    if (from === null || from === undefined || !map[from]) {
+      this.setAudioFocus(0);
+      return 0;
+    }
+
+    const to = map[from][direction];
+    if (to === undefined) return null;
+
+    this.setAudioFocus(to);
+    return to;
   }
 
   /**
@@ -207,8 +272,10 @@ class UIManager {
       <div style="text-align: left; margin: 16px 0;">
         <h3>🎹 Keyboard Shortcuts:</h3>
         <p><strong>Ctrl/Cmd + Space</strong> - Cycle layouts (2x2, 1+2, 2-vertical)</p>
+        <p><strong>Arrow keys</strong> - Move audio focus around the grid</p>
         <p><strong>1-4</strong> - Give that stream audio focus</p>
         <p><strong>Alt + M</strong> - Mute/unmute all streams</p>
+        <p style="color: #aaa;">Clicked inside a stream? Hold <strong>Alt/Option</strong> with the same keys.</p>
         <p><strong>Esc</strong> - Exit QuadTV</p>
         <p><strong>?</strong> - Show this help</p>
 
@@ -874,6 +941,29 @@ class UIManager {
   static FRAME_NAME_PREFIX = 'quadtv-stream-';
   static FRAME_ORIGIN = 'https://tv.youtube.com';
 
+  static ARROW_DIRECTIONS = {
+    ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down'
+  };
+
+  // Spatial neighbours per layout: streamIndex -> { direction: streamIndex }
+  static AUDIO_NEIGHBOURS = {
+    '2x2': {
+      0: { right: 1, left: 1, down: 2, up: 2 },
+      1: { left: 0, right: 0, down: 3, up: 3 },
+      2: { up: 0, down: 0, right: 3, left: 3 },
+      3: { up: 1, down: 1, left: 2, right: 2 }
+    },
+    '1+2': {
+      0: { right: 1, left: 1 },
+      1: { left: 0, right: 0, down: 2, up: 2 },
+      2: { left: 0, right: 0, up: 1, down: 1 }
+    },
+    '2-vertical': {
+      0: { right: 1, left: 1 },
+      1: { left: 0, right: 0 }
+    }
+  };
+
   /**
    * Listen for messages from the frame agents running inside each tile
    * @private
@@ -921,6 +1011,11 @@ class UIManager {
         break;
       case 'URL':
         state.url = data.url;
+        break;
+      case 'KEY':
+        // A shortcut pressed inside a tile (always Alt-modified, see FrameAgent)
+        console.log(`🎹 UI: Key forwarded from tile ${index}: ${data.key}`);
+        this.handleShortcut(UIManager.normalizeKey(data));
         break;
       default:
         break;

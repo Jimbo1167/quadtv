@@ -13,13 +13,21 @@
  *
  * Protocol (parent -> tile):  { source: 'quadtv', type: 'SET_MUTED', muted }
  *                             { source: 'quadtv', type: 'GET_STATE' }
- * Protocol (tile -> parent):  { source: 'quadtv-frame', index, type: 'READY'|'STATE'|'URL', ... }
+ * Protocol (tile -> parent):  { source: 'quadtv-frame', index, type: 'READY'|'STATE'|'URL'|'KEY', ... }
+ *
+ * Keyboard: keydown events inside a tile never reach the top frame, so the
+ * agent forwards Alt-modified shortcuts (arrows, 1-4, M) as KEY messages.
+ * Plain keys are left alone so YouTube TV's own navigation keeps working.
  *
  * @class
  */
 class FrameAgent {
   static NAME_PREFIX = 'quadtv-stream-';
   static ORIGIN = 'https://tv.youtube.com';
+  static FORWARDED_CODES = new Set([
+    'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+    'Digit1', 'Digit2', 'Digit3', 'Digit4', 'KeyM'
+  ]);
 
   /**
    * @param {Window} win - the frame's window
@@ -61,7 +69,9 @@ class FrameAgent {
 
     this.onMessage = (event) => this.handleMessage(event);
     this.onPlay = () => this.scheduleApply();
+    this.onKeyDown = (event) => this.handleKeyDown(event);
     this.win.addEventListener('message', this.onMessage);
+    this.doc.addEventListener('keydown', this.onKeyDown, true);
     // YouTube TV swaps <video> elements on channel change; re-apply on play
     this.doc.addEventListener('play', this.onPlay, true);
 
@@ -81,6 +91,7 @@ class FrameAgent {
   /** Tear down listeners (used by tests) */
   stop() {
     if (this.onMessage) this.win.removeEventListener('message', this.onMessage);
+    if (this.onKeyDown) this.doc.removeEventListener('keydown', this.onKeyDown, true);
     if (this.onPlay) this.doc.removeEventListener('play', this.onPlay, true);
     if (this.observer) this.observer.disconnect();
     if (this.urlTimer) clearInterval(this.urlTimer);
@@ -103,6 +114,21 @@ class FrameAgent {
       default:
         break;
     }
+  }
+
+  /**
+   * Forward Alt-modified shortcuts to the parent so they work while a tile has focus
+   * @param {KeyboardEvent} event
+   * @returns {boolean} whether the key was forwarded
+   */
+  handleKeyDown(event) {
+    if (!event.altKey || event.ctrlKey || event.metaKey) return false;
+    if (!FrameAgent.FORWARDED_CODES.has(event.code)) return false;
+
+    event.preventDefault();
+    event.stopPropagation();
+    this.post('KEY', { key: event.key, code: event.code, altKey: true, ctrlKey: false, metaKey: false });
+    return true;
   }
 
   /** @returns {HTMLVideoElement[]} */

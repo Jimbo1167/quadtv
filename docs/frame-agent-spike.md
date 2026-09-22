@@ -19,7 +19,11 @@ instead and lets it own the tile's `<video>` directly.
   re-sends the desired mute state on `READY`, and restores hidden tiles to the
   channel their agent last reported instead of the home page.
 - Stream 1 starts with audio and the rest start muted. Click a tile's number
-  badge or press 1–4 to move audio focus. Alt+M still mutes everything.
+  badge, press 1–4, or use the arrow keys to move audio focus. Alt+M still
+  mutes everything.
+- Keys pressed inside a tile never reach the top frame, so the agent forwards
+  Alt-modified shortcuts (Alt+arrows, Alt+1–4, Alt+M) as `KEY` messages. Plain
+  keys are left to YouTube TV so its own navigation keeps working.
 
 ## What to verify
 
@@ -30,7 +34,9 @@ instead and lets it own the tile's `<video>` directly.
    the new video element).
 4. Switch to 2 Vertical and back to 2x2. Tiles 3 and 4 should come back on the
    channel they were on, not the home page, and stay muted.
-5. Press 1 through 4 with the page (not a tile) focused.
+5. Press 1 through 4 or the arrow keys with the page (not a tile) focused.
+6. Click inside a tile, then press Alt+Right / Alt+Down. Focus should still
+   move. Plain arrows inside the tile should still drive YouTube TV.
 
 ## Known risks
 
@@ -39,5 +45,6 @@ instead and lets it own the tile's `<video>` directly.
   nudge. If unmuting silently fails, this is the first thing to look at.
 - YouTube TV's own mute icon won't reflect a mute set on the element. The tile
   badge is the source of truth.
-- Number keys only work when the top frame has focus. Keyboard events inside a
-  tile don't reach the parent.
+- Unmodified keys only work when the top frame has focus. Inside a tile, hold
+  Alt (Option on macOS). Modifier-plus-key inside the tile may collide with a
+  YouTube TV shortcut; none are known yet.

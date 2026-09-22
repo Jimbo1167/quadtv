@@ -123,3 +123,53 @@ describe('FrameAgent', () => {
     expect(videos[0].muted).toBe(false);
   });
 });
+
+describe('FrameAgent keyboard forwarding', () => {
+  function startWithKeys() {
+    const f = makeFrame();
+    f.agent.start();
+    const keydown = f.doc.addEventListener.mock.calls.find(c => c[0] === 'keydown')[1];
+    const press = (init) => {
+      const e = { altKey: false, ctrlKey: false, metaKey: false, preventDefault: jest.fn(), stopPropagation: jest.fn(), ...init };
+      keydown(e);
+      return e;
+    };
+    return { ...f, press };
+  }
+
+  test('forwards Alt+Arrow to the parent and consumes it', () => {
+    const f = startWithKeys();
+    const e = f.press({ key: 'ArrowRight', code: 'ArrowRight', altKey: true });
+
+    expect(e.preventDefault).toHaveBeenCalled();
+    expect(f.parent.postMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ type: 'KEY', index: 2, key: 'ArrowRight', code: 'ArrowRight', altKey: true }),
+      ORIGIN
+    );
+    f.agent.stop();
+  });
+
+  test('forwards Alt+digit and Alt+M using event.code', () => {
+    const f = startWithKeys();
+    f.press({ key: '¡', code: 'Digit1', altKey: true });
+    expect(f.parent.postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'KEY', code: 'Digit1' }), ORIGIN);
+    f.press({ key: 'µ', code: 'KeyM', altKey: true });
+    expect(f.parent.postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'KEY', code: 'KeyM' }), ORIGIN);
+    f.agent.stop();
+  });
+
+  test('leaves plain arrows and other keys to YouTube TV', () => {
+    const f = startWithKeys();
+    f.parent.postMessage.mockClear();
+
+    const plain = f.press({ key: 'ArrowRight', code: 'ArrowRight' });
+    const other = f.press({ key: 'x', code: 'KeyX', altKey: true });
+    const ctrl = f.press({ key: 'ArrowLeft', code: 'ArrowLeft', altKey: true, ctrlKey: true });
+
+    expect(plain.preventDefault).not.toHaveBeenCalled();
+    expect(other.preventDefault).not.toHaveBeenCalled();
+    expect(ctrl.preventDefault).not.toHaveBeenCalled();
+    expect(f.parent.postMessage).not.toHaveBeenCalled();
+    f.agent.stop();
+  });
+});
