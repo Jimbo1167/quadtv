@@ -150,32 +150,39 @@ youtube, tv, streaming, multi-view, quad, split-screen, sports, news, live-tv, p
 
 ---
 
-## Version Notes Template
+## Version Notes (paste into AMO's "Release notes" field as-is; it is plain text)
 
-### Version 1.0.0
+```
+QuadTV 1.0.0
 
-**Features:**
-- Multi-stream viewing with 3 layout options (2x2, 1+2, 2-vertical)
-- Audio focus: one stream has sound; move it by clicking a badge, pressing 1-4, or the arrow keys
-- On-grid layout bar (hover the top edge) and L to cycle layouts
-- Resizable stream dividers with drag-and-drop
-- Persistent layout preferences
-- Grid reset functionality
-- Visual status indicators
+Audio focus is here. One stream has sound and the rest stay muted, so four games no longer talk over each other. Click a stream's number badge, press 1-4, or use the arrow keys to move the sound. Alt+M mutes everything. If you've clicked inside a stream, hold Alt (Option on Mac) with the same keys.
 
-**Fixes since 0.3.9:**
-- Layout switching from the popup while active
-- 1+2 layout's large stream now spans both rows
+New
+- Audio focus: badge click, 1-4, arrow keys, Alt+M
+- Layout bar at the top edge of the grid: switch layouts, see which stream has sound, open help, or exit without the popup
+- Press L to cycle layouts (Ctrl/Cmd+Space still works)
+- Switching back to a bigger layout is instant, and hidden streams return on the channel they were on
+
+Fixed
+- Changing layout from the popup while QuadTV was active did nothing
+- The 1+2 layout's large stream now fills the left column
 - Streams hidden by a smaller layout no longer keep playing audio
+- Custom divider positions now apply when switching layouts
+- Alt+M works on macOS
 
-**Privacy:**
-- No data collection
-- All settings stored locally
-- Open source and transparent
+Good to know
+- YouTube TV's own speaker icon may not match QuadTV's mute. Trust the stream badge and red glow.
+- Ad breaks can cause a brief blip of sound before a muted stream goes quiet again.
+- QuadTV collects no data. All settings stay in your browser.
 
-**Requirements:**
-- YouTube TV subscription
-- Firefox browser
+Requires a YouTube TV subscription. Firefox only.
+```
+
+### Short version (if the field is tight)
+
+```
+Audio focus: one stream has sound, move it with a badge click, 1-4, or the arrow keys. New layout bar at the top of the grid; L cycles layouts. Fixed layout switching from the popup, the 1+2 layout, and hidden streams that kept playing audio. No data collected.
+```
 
 ---
 
