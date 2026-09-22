@@ -20,6 +20,8 @@
     {
       "matches": ["*://tv.youtube.com/*"],
       "js": [
+        "shared/buildInfo.js",
+        "shared/buildLabel.js",
         "shared/messageBus.js",
         "shared/layoutEngine.js",
         "shared/storageManager.js",
@@ -27,6 +29,12 @@
         "content/contentScript.js"
       ],
       "css": ["content/quadtv.css"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["*://tv.youtube.com/*"],
+      "all_frames": true,
+      "js": ["content/frameAgent.js"],
       "run_at": "document_end"
     }
   ],

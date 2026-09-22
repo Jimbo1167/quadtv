@@ -25,6 +25,8 @@ class UIManager {
     this.dividers = []; // Store divider elements
     this.isDragging = false;
     this.activeAudioStream = null; // Track which stream has audio focus
+    this.desiredMuted = {}; // streamIndex -> boolean, re-sent when a tile's agent reports READY
+    this.frameStates = {}; // streamIndex -> { ready, url, muted, paused, hasVideo }
 
     // Grid ratios for each layout (fr units)
     this.gridRatios = {
@@ -43,7 +45,18 @@ class UIManager {
   init() {
     this.setupMessageBusListeners();
     this.setupKeyboardShortcuts();
+    this.setupFrameMessaging();
     this.loadGridRatios();
+    console.log(`🏷️ QuadTV build: ${this.getBuildLabel()}`);
+  }
+
+  /**
+   * Human-readable build stamp from the generated buildInfo.js
+   * @returns {string}
+   */
+  getBuildLabel() {
+    const format = window.QuadTVFormatBuildLabel;
+    return format ? format(window.QuadTVBuild) : 'unknown';
   }
 
   setupMessageBusListeners() {
@@ -58,8 +71,7 @@ class UIManager {
   }
 
   /**
-   * Handle keyboard shortcuts for QuadTV
-   * Supports: Esc (exit), Ctrl/Cmd+Space (cycle layouts), Alt+M (mute all), ? (help)
+   * Handle keyboard shortcuts for QuadTV in the top frame
    * Ignores shortcuts when user is typing in text fields
    *
    * @param {KeyboardEvent} event - The keyboard event
@@ -73,39 +85,116 @@ class UIManager {
       return;
     }
 
-    const key = event.key;
+    const handled = this.handleShortcut(UIManager.normalizeKey(event));
+    if (handled) event.preventDefault();
+  }
+
+  /**
+   * Normalize a key event so the same shortcut works with or without Alt.
+   * On macOS, Option changes event.key (Option+M gives "µ"), so letters and
+   * digits are derived from event.code when a modifier is held.
+   *
+   * @param {{key: string, code?: string, altKey?: boolean, ctrlKey?: boolean, metaKey?: boolean}} e
+   * @returns {{key: string, altKey: boolean, ctrlKey: boolean, metaKey: boolean}}
+   */
+  static normalizeKey(e) {
+    let key = e.key;
+    const code = e.code || '';
+    if (e.altKey || e.ctrlKey || e.metaKey) {
+      if (/^Digit[0-9]$/.test(code)) key = code.slice(5);
+      else if (/^Key[A-Z]$/.test(code)) key = code.slice(3).toLowerCase();
+    }
+    return { key, altKey: !!e.altKey, ctrlKey: !!e.ctrlKey, metaKey: !!e.metaKey };
+  }
+
+  /**
+   * Run a shortcut. Shared by the top-frame keydown handler and keys forwarded
+   * from tiles by the frame agent (those always carry Alt).
+   * Supports: Esc (exit), Ctrl/Cmd+Space (cycle layouts), Alt+M (mute all),
+   * 1-4 (audio focus), arrows (move audio focus), ? (help)
+   *
+   * @param {{key: string, altKey: boolean, ctrlKey: boolean, metaKey: boolean}} k
+   * @returns {boolean} whether the key was handled
+   * @public
+   */
+  handleShortcut(k) {
+    if (!this.isActive) return false;
+    const { key } = k;
 
     // ESC to deactivate QuadTV
     if (key === 'Escape') {
-      event.preventDefault();
       console.log('🎹 Keyboard shortcut: Deactivating QuadTV');
       this.messageBus.publish('QUADTV_DEACTIVATED');
-      return;
+      return true;
     }
 
     // Space to toggle between layouts
-    if (key === ' ' && (event.ctrlKey || event.metaKey)) {
-      event.preventDefault();
+    if (key === ' ' && (k.ctrlKey || k.metaKey)) {
       console.log('🎹 Keyboard shortcut: Cycling layout');
       this.cycleLayout();
-      return;
+      return true;
     }
 
     // Alt+M to toggle mute all streams
-    if ((key === 'm' || key === 'M') && event.altKey) {
-      event.preventDefault();
+    if ((key === 'm' || key === 'M') && k.altKey) {
       console.log('🎹 Keyboard shortcut: Toggle mute all streams');
       this.toggleMuteAllStreams();
-      return;
+      return true;
+    }
+
+    // 1-4 (optionally with Alt) to give a stream audio focus
+    if (/^[1-4]$/.test(key) && !k.ctrlKey && !k.metaKey) {
+      const index = Number(key) - 1;
+      if (index < this.getStreamCountForLayout(this.currentLayout)) {
+        console.log(`🎹 Keyboard shortcut: Audio focus to stream ${index + 1}`);
+        this.setAudioFocus(index);
+        return true;
+      }
+      return false;
+    }
+
+    // Arrow keys (optionally with Alt) to move audio focus around the grid
+    const direction = UIManager.ARROW_DIRECTIONS[key];
+    if (direction && !k.ctrlKey && !k.metaKey) {
+      console.log(`🎹 Keyboard shortcut: Move audio focus ${direction}`);
+      this.moveAudioFocus(direction);
+      return true;
     }
 
     // ? to show help
     if (key === '?' || key === '/') {
-      event.preventDefault();
       console.log('🎹 Keyboard shortcut: Showing help');
       this.showOnboarding();
-      return;
+      return true;
     }
+
+    return false;
+  }
+
+  /**
+   * Move audio focus to the neighbouring stream in a direction, using the
+   * spatial arrangement of the current layout. With two rows or columns the
+   * opposite directions both toggle, which is what users expect.
+   *
+   * @param {'left'|'right'|'up'|'down'} direction
+   * @returns {number|null} the stream that received focus, or null if no neighbour
+   * @public
+   */
+  moveAudioFocus(direction) {
+    const map = UIManager.AUDIO_NEIGHBOURS[this.currentLayout] || UIManager.AUDIO_NEIGHBOURS['2x2'];
+    const from = this.activeAudioStream;
+
+    // Nothing focused yet (e.g. after Alt+M): start at stream 1
+    if (from === null || from === undefined || !map[from]) {
+      this.setAudioFocus(0);
+      return 0;
+    }
+
+    const to = map[from][direction];
+    if (to === undefined) return null;
+
+    this.setAudioFocus(to);
+    return to;
   }
 
   /**
@@ -183,13 +272,16 @@ class UIManager {
       <div style="text-align: left; margin: 16px 0;">
         <h3>🎹 Keyboard Shortcuts:</h3>
         <p><strong>Ctrl/Cmd + Space</strong> - Cycle layouts (2x2, 1+2, 2-vertical)</p>
+        <p><strong>Arrow keys</strong> - Move audio focus around the grid</p>
+        <p><strong>1-4</strong> - Give that stream audio focus</p>
         <p><strong>Alt + M</strong> - Mute/unmute all streams</p>
+        <p style="color: #aaa;">Clicked inside a stream? Hold <strong>Alt/Option</strong> with the same keys.</p>
         <p><strong>Esc</strong> - Exit QuadTV</p>
         <p><strong>?</strong> - Show this help</p>
 
         <h3>🔊 Audio Control:</h3>
-        <p><strong>Click on a stream</strong> - Give it audio focus (mutes all others)</p>
-        <p>Control audio automatically with click-to-focus</p>
+        <p><strong>Click a stream's number badge</strong> - Give it audio focus (mutes all others)</p>
+        <p>Stream 1 starts with audio; the others start muted</p>
         <p>Use Alt+M to quickly mute/unmute everything</p>
 
         <h3>📏 Resizable Grid (2x2 layout):</h3>
@@ -207,6 +299,12 @@ class UIManager {
         font-weight: bold;
       ">Got it!</button>
     `;
+
+    // Build stamp (set via textContent, never interpolated into innerHTML)
+    const buildLine = document.createElement('p');
+    buildLine.style.cssText = 'font-size: 11px; color: #888; font-family: monospace;';
+    buildLine.textContent = `build: ${this.getBuildLabel()}`;
+    helpContent.appendChild(buildLine);
 
     helpOverlay.appendChild(helpContent);
     document.body.appendChild(helpOverlay);
@@ -269,10 +367,13 @@ class UIManager {
     this.createQuadTVGrid();
     this.isActive = true;
 
+    // Stream 1 gets audio, the rest start muted (applied when each tile's agent reports READY)
+    this.setAudioFocus(0);
+
     // Add keyboard shortcuts
     document.addEventListener('keydown', this.keyboardHandler, { capture: true, passive: false });
 
-    console.log('📺 Tab: QuadTV grid activated');
+    console.log(`📺 Tab: QuadTV grid activated (build ${this.getBuildLabel()})`);
     this.messageBus.publish('UI_ACTIVATED');
   }
 
@@ -290,8 +391,11 @@ class UIManager {
     // Remove QuadTV grid
     this.removeQuadTVGrid();
 
-    // Reset current video URL
+    // Reset current video URL and per-tile audio state
     this.currentVideoUrl = null;
+    this.desiredMuted = {};
+    this.frameStates = {};
+    this.activeAudioStream = null;
 
     this.isActive = false;
 
@@ -341,9 +445,16 @@ class UIManager {
     // Create iframe for YouTube TV
     const iframe = document.createElement('iframe');
     iframe.className = 'quadtv-iframe';
+    // The frame agent inside the tile identifies itself by this name
+    iframe.name = `${UIManager.FRAME_NAME_PREFIX}${index}`;
 
-    // If this is the first stream and we have a current video URL, use it
-    if (index === 0 && this.currentVideoUrl) {
+    // Streams hidden by the current layout start unloaded so they never play audio
+    if (index >= this.getStreamCountForLayout(this.currentLayout)) {
+      iframe.src = 'about:blank';
+      iframe.dataset.unloaded = 'true';
+      console.log(`📺 UI: Stream ${index} hidden by layout, leaving unloaded`);
+    } else if (index === 0 && this.currentVideoUrl) {
+      // If this is the first stream and we have a current video URL, use it
       iframe.src = this.currentVideoUrl;
       console.log('✅ UI: Setting first iframe to current video:', this.currentVideoUrl);
 
@@ -480,6 +591,9 @@ class UIManager {
       ...styles
     });
 
+    // Apply any saved column/row ratios so the grid matches the divider positions
+    this.applyGridRatios();
+
     // Show/hide streams based on layout requirements
     const requiredStreams = this.getStreamCountForLayout(layout);
     const allStreams = document.querySelectorAll('.quadtv-stream');
@@ -487,9 +601,11 @@ class UIManager {
     allStreams.forEach((stream, index) => {
       if (index < requiredStreams) {
         stream.style.display = 'block';
+        this.restoreStream(index);
         console.log(`📐 UI: Showing stream ${index}`);
       } else {
         stream.style.display = 'none';
+        this.unloadStream(index);
         console.log(`📐 UI: Hiding stream ${index}`);
       }
     });
@@ -498,6 +614,41 @@ class UIManager {
 
     // Update dividers for new layout
     this.updateDividers(layout);
+  }
+
+  /**
+   * Unload a hidden stream's iframe so it stops playing audio.
+   * Cross-origin rules block muting the player directly, so navigating the
+   * iframe to about:blank is the only reliable way to silence a hidden tile.
+   *
+   * @param {number} index - Stream index
+   * @private
+   */
+  unloadStream(index) {
+    const iframe = this.iframes[index];
+    if (!iframe || iframe.dataset.unloaded === 'true') return;
+
+    iframe.dataset.unloaded = 'true';
+    iframe.src = 'about:blank';
+    if (this.frameStates[index]) this.frameStates[index].ready = false;
+    console.log(`🔇 UI: Unloaded hidden stream ${index}`);
+  }
+
+  /**
+   * Reload a previously unloaded stream's iframe when its tile becomes visible.
+   * The tile returns to the YouTube TV home page since the prior channel cannot
+   * be recovered from a cross-origin iframe.
+   *
+   * @param {number} index - Stream index
+   * @private
+   */
+  restoreStream(index) {
+    const iframe = this.iframes[index];
+    if (!iframe || iframe.dataset.unloaded !== 'true') return;
+
+    delete iframe.dataset.unloaded;
+    iframe.src = this.lastKnownUrl(index) || 'https://tv.youtube.com';
+    console.log(`📺 UI: Reloaded stream ${index} to ${iframe.src}`);
   }
 
   // ===== RESIZABLE DIVIDERS =====
@@ -785,143 +936,137 @@ class UIManager {
     console.log('📏 Reset all grid ratios to defaults');
   }
 
-  // ===== AUDIO CONTROL =====
+  // ===== AUDIO CONTROL (via frame agent) =====
+
+  static FRAME_NAME_PREFIX = 'quadtv-stream-';
+  static FRAME_ORIGIN = 'https://tv.youtube.com';
+
+  static ARROW_DIRECTIONS = {
+    ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down'
+  };
+
+  // Spatial neighbours per layout: streamIndex -> { direction: streamIndex }
+  static AUDIO_NEIGHBOURS = {
+    '2x2': {
+      0: { right: 1, left: 1, down: 2, up: 2 },
+      1: { left: 0, right: 0, down: 3, up: 3 },
+      2: { up: 0, down: 0, right: 3, left: 3 },
+      3: { up: 1, down: 1, left: 2, right: 2 }
+    },
+    '1+2': {
+      0: { right: 1, left: 1 },
+      1: { left: 0, right: 0, down: 2, up: 2 },
+      2: { left: 0, right: 0, up: 1, down: 1 }
+    },
+    '2-vertical': {
+      0: { right: 1, left: 1 },
+      1: { left: 0, right: 0 }
+    }
+  };
 
   /**
-   * Wait for iframe to be ready and YouTube TV controls to be loaded
+   * Listen for messages from the frame agents running inside each tile
+   * @private
    */
-  waitForIframeReady(iframe, timeout = 10000) {
-    return new Promise((resolve) => {
-      const startTime = Date.now();
+  setupFrameMessaging() {
+    this.frameMessageHandler = (event) => this.onFrameMessage(event);
+    window.addEventListener('message', this.frameMessageHandler);
+  }
 
-      const checkReady = () => {
-        try {
-          // Check if iframe contentWindow is accessible
-          if (!iframe.contentWindow || !iframe.contentWindow.document) {
-            if (Date.now() - startTime < timeout) {
-              setTimeout(checkReady, 100);
-            } else {
-              resolve(false);
-            }
-            return;
-          }
+  /**
+   * Handle a message from a tile's frame agent
+   * @param {MessageEvent} event
+   * @private
+   */
+  onFrameMessage(event) {
+    if (event.origin !== UIManager.FRAME_ORIGIN) return;
+    const data = event.data;
+    if (!data || data.source !== 'quadtv-frame' || !Number.isInteger(data.index)) return;
 
-          // Check if volume button exists in the DOM
-          const volumeButton = iframe.contentWindow.document.querySelector('ytu-icon-button.ypc-volume-button button');
+    const index = data.index;
+    const iframe = this.iframes[index];
+    if (!iframe) return;
+    if (iframe.contentWindow && event.source !== iframe.contentWindow) {
+      console.warn(`🎛️ UI: Ignoring frame message for stream ${index} from an unexpected window`);
+      return;
+    }
 
-          if (volumeButton) {
-            resolve(true);
-          } else if (Date.now() - startTime < timeout) {
-            setTimeout(checkReady, 100);
-          } else {
-            resolve(false);
-          }
-        } catch (error) {
-          if (Date.now() - startTime < timeout) {
-            setTimeout(checkReady, 100);
-          } else {
-            resolve(false);
-          }
+    const state = this.frameStates[index] || (this.frameStates[index] = {});
+
+    switch (data.type) {
+      case 'READY':
+        state.ready = true;
+        state.url = data.url;
+        console.log(`🎛️ UI: Tile ${index} agent ready at ${data.url}`);
+        // Re-apply whatever audio state this tile is supposed to have
+        if (index in this.desiredMuted) {
+          this.sendToFrame(index, { type: 'SET_MUTED', muted: this.desiredMuted[index] });
         }
-      };
-
-      checkReady();
-    });
-  }
-
-  /**
-   * Toggle mute for a specific stream
-   */
-  async toggleMuteForStream(streamIndex) {
-    const iframe = this.iframes[streamIndex];
-    if (!iframe) {
-      console.warn(`Stream ${streamIndex} not found`);
-      return false;
-    }
-
-    // Wait for iframe to be ready
-    const isReady = await this.waitForIframeReady(iframe);
-    if (!isReady) {
-      console.warn(`Stream ${streamIndex} controls not ready`);
-      return false;
-    }
-
-    try {
-      const iframeDoc = iframe.contentWindow.document;
-      const volumeButton = iframeDoc.querySelector('ytu-icon-button.ypc-volume-button button');
-
-      if (volumeButton) {
-        volumeButton.click();
-        console.log(`🔊 Toggled mute for stream ${streamIndex}`);
-        return true;
-      } else {
-        console.warn(`Volume button not found in stream ${streamIndex}`);
-        return false;
-      }
-    } catch (error) {
-      console.error(`Error toggling mute for stream ${streamIndex}:`, error);
-      return false;
+        break;
+      case 'STATE':
+        Object.assign(state, {
+          url: data.url, hasVideo: data.hasVideo, muted: data.muted, paused: data.paused
+        });
+        console.log(`🎛️ UI: Tile ${index} state`, { muted: data.muted, paused: data.paused, hasVideo: data.hasVideo });
+        break;
+      case 'URL':
+        state.url = data.url;
+        break;
+      case 'KEY':
+        // A shortcut pressed inside a tile (always Alt-modified, see FrameAgent)
+        console.log(`🎹 UI: Key forwarded from tile ${index}: ${data.key}`);
+        this.handleShortcut(UIManager.normalizeKey(data));
+        break;
+      default:
+        break;
     }
   }
 
   /**
-   * Ensure a stream is muted
+   * Post a message to the frame agent inside a tile
+   * @param {number} index - Stream index
+   * @param {Object} message - Payload (type + fields)
+   * @returns {boolean} whether a target window existed
+   * @private
    */
+  sendToFrame(index, message) {
+    const win = this.iframes[index] && this.iframes[index].contentWindow;
+    if (!win) return false;
+    win.postMessage({ source: 'quadtv', ...message }, UIManager.FRAME_ORIGIN);
+    return true;
+  }
+
+  /**
+   * Last URL a tile's agent reported, if it is a YouTube TV URL
+   * @param {number} index
+   * @returns {string|null}
+   */
+  lastKnownUrl(index) {
+    const url = this.frameStates[index] && this.frameStates[index].url;
+    return typeof url === 'string' && url.startsWith(UIManager.FRAME_ORIGIN) ? url : null;
+  }
+
+  /**
+   * Record and send the desired mute state for a stream. The state is
+   * re-sent whenever the tile's agent (re)starts, so it survives channel
+   * changes and tile reloads.
+   * @param {number} index - Stream index
+   * @param {boolean} muted
+   * @returns {boolean} whether a message was sent now
+   */
+  setStreamMuted(index, muted) {
+    this.desiredMuted[index] = muted;
+    return this.sendToFrame(index, { type: 'SET_MUTED', muted });
+  }
+
+  /** Ensure a stream is muted */
   async ensureMuted(streamIndex) {
-    const iframe = this.iframes[streamIndex];
-    if (!iframe) return false;
-
-    const isReady = await this.waitForIframeReady(iframe);
-    if (!isReady) return false;
-
-    try {
-      const iframeDoc = iframe.contentWindow.document;
-      const volumeButton = iframeDoc.querySelector('ytu-icon-button.ypc-volume-button button');
-
-      if (volumeButton) {
-        const ariaLabel = volumeButton.getAttribute('aria-label') || '';
-        // If aria-label contains "Mute (m)", audio is ON, so click to mute
-        if (ariaLabel.includes('Mute (m)')) {
-          volumeButton.click();
-          console.log(`🔇 Muted stream ${streamIndex}`);
-          return true;
-        }
-      }
-      return false;
-    } catch (error) {
-      console.error(`Error muting stream ${streamIndex}:`, error);
-      return false;
-    }
+    return this.setStreamMuted(streamIndex, true);
   }
 
-  /**
-   * Ensure a stream is unmuted
-   */
+  /** Ensure a stream is unmuted */
   async ensureUnmuted(streamIndex) {
-    const iframe = this.iframes[streamIndex];
-    if (!iframe) return false;
-
-    const isReady = await this.waitForIframeReady(iframe);
-    if (!isReady) return false;
-
-    try {
-      const iframeDoc = iframe.contentWindow.document;
-      const volumeButton = iframeDoc.querySelector('ytu-icon-button.ypc-volume-button button');
-
-      if (volumeButton) {
-        const ariaLabel = volumeButton.getAttribute('aria-label') || '';
-        // If aria-label contains "Unmute (m)", audio is OFF, so click to unmute
-        if (ariaLabel.includes('Unmute (m)')) {
-          volumeButton.click();
-          console.log(`🔊 Unmuted stream ${streamIndex}`);
-          return true;
-        }
-      }
-      return false;
-    } catch (error) {
-      console.error(`Error unmuting stream ${streamIndex}:`, error);
-      return false;
-    }
+    return this.setStreamMuted(streamIndex, false);
   }
 
   /**

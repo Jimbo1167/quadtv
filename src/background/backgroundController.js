@@ -163,10 +163,13 @@ class BackgroundController {
         });
         break;
 
-      case 'SET_LAYOUT':
-        await this.setLayout(message.layout, sender.tab);
+      case 'SET_LAYOUT': {
+        // Messages from the popup have no sender.tab, so fall back to the active tab
+        const tab = sender.tab || await this.getActiveTab();
+        await this.setLayout(message.layout, tab);
         sendResponse({ success: true });
         break;
+      }
 
       case 'QUADTV_READY':
         // Content script is ready - update icon
@@ -202,10 +205,25 @@ class BackgroundController {
     }
   }
 
+  /**
+   * Get the active tab in the current window
+   * @returns {Promise<Object|undefined>} Active tab, or undefined if none
+   * @private
+   */
+  async getActiveTab() {
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    return tabs[0];
+  }
+
   async setLayout(layoutType, tab) {
     console.log(`📐 Background: Setting layout to ${layoutType}`);
-    
+
     this.currentLayout = layoutType;
+
+    if (!tab || tab.id === undefined) {
+      console.error('❌ Background: Cannot set layout, no target tab');
+      return;
+    }
 
     // Send layout change to content script
     try {
@@ -223,3 +241,7 @@ class BackgroundController {
 // Initialize background controller
 const backgroundController = new BackgroundController();
 console.log('🚀 Background: QuadTV Background Controller initialized');
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { BackgroundController };
+}
